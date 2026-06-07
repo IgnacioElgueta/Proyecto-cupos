@@ -212,6 +212,8 @@ function autenticarAdmin(event) {
         if (data.success) {
             document.getElementById("seccion-login-admin").style.display = "none";
             document.getElementById("panel-admin-box").style.display = "block";
+            
+            // 🔥 SOLUCIÓN AQUÍ: Forzamos la recarga inmediata del servidor ahora que el contenedor ya existe en el DOM visible
             cargarDatosDelServidor();
         } else {
             alert(data.message);
@@ -370,7 +372,7 @@ function actualizarListaRutsDom(listaRuts) {
         
         item.innerHTML = `
             <span>${rut}</span>
-            <button onclick="eliminarRutAdmin('${rut}')" style="background: none; border: none; color: #ef4444; cursor: pointer; font-size: 14px; font-weight: bold; padding: 0 5px;">×</button>
+            <button onclick="eliminarRutAdmin('${rut}')" style="background: none; border: none; color: #ef4444; cursor: pointer; font-size: 14px; font-weight: bold; padding: 0 5px;">✕</button>
         `;
         contenedor.appendChild(item);
     });
