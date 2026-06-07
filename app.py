@@ -1,23 +1,28 @@
 from flask import Flask, render_template, jsonify, request
-import json
-import os
 from datetime import datetime, timedelta
+from pymongo import MongoClient
 
 app = Flask(__name__)
 
-# Archivo permanente en el disco de Render
-ARCHIVO_DB = "datos_box.json"
+MONGO_URI = "mongodb+srv://Cupos_prog:Entrenamiento34@cluster0.vyxg5ux.mongodb.net/?appName=Cluster0"
 
-# Configuración base inicial
+# Conectar a Mongo
+cliente_mongo = MongoClient(MONGO_URI)
+db = cliente_mongo['box_db']          # Nombre de tu base de datos
+coleccion = db['sistema']             # Nombre de tu "carpeta" donde estará el JSON
+
 DATOS_INICIALES = {
+    "_id": "configuracion_box",       # Identificador único en Mongo
     "listaRuts": [],
-    "fechasHabilitadas": [],  # Ejemplo: ["2026-06-08", "2026-06-09"]
-    "agendaDias": {}          # Estructura: {"2026-06-08": {"8": {"disponibles": 10, "totales": 10}, ...}}
+    "fechasHabilitadas": [],  
+    "agendaDias": {}          
 }
 
 def cargar_datos():
-    """Carga los datos desde el archivo permanente y auto-genera días si está vacío."""
-    if not os.path.exists(ARCHIVO_DB):
+    """Carga los datos desde la nube (MongoDB) y auto-genera días si está vacío."""
+    datos = coleccion.find_one({"_id": "configuracion_box"})
+    
+    if not datos:
         # Por defecto, habilitamos las próximas 2 semanas de forma automática al inicio
         hoy = datetime.now()
         fechas = []
@@ -32,24 +37,20 @@ def cargar_datos():
                 "personas": [] # Las personas ahora se guardan por cada día específico
             }
         
-        datos = {
+        datos_nuevos = {
+            "_id": "configuracion_box",
             "listaRuts": [],
             "fechasHabilitadas": fechas,
             "agendaDias": agenda
         }
-        guardar_datos(datos)
-        return datos
+        coleccion.insert_one(datos_nuevos)
+        return datos_nuevos
     
-    try:
-        with open(ARCHIVO_DB, 'r', encoding='utf-8') as f:
-            return json.load(f)
-    except:
-        return DATOS_INICIALES
+    return datos
 
 def guardar_datos(datos):
-    """Guarda los datos actuales en el archivo permanente."""
-    with open(ARCHIVO_DB, 'w', encoding='utf-8') as f:
-        json.dump(datos, f, indent=4, ensure_ascii=False)
+    """Guarda los datos actuales en MongoDB de forma permanente."""
+    coleccion.update_one({"_id": "configuracion_box"}, {"$set": datos}, upsert=True)
 
 
 # --- RUTAS DE NAVEGACIÓN (PÁGINAS) ---
@@ -68,6 +69,9 @@ def admin_page():
 @app.route('/api/datos', methods=['GET'])
 def obtener_datos():
     datos = cargar_datos()
+    # Borramos el ID de Mongo antes de enviarlo al Frontend para no romper el Javascript
+    if "_id" in datos:
+        del datos["_id"]
     return jsonify(datos)
 
 # API: Verificar RUT del Alumno
@@ -88,8 +92,8 @@ def verificar_rut():
 @app.route('/api/reservar', methods=['POST'])
 def reservar():
     data = request.json
-    fecha = str(data.get('fecha')) # Recibimos la fecha elegida (ej: "2026-06-08")
-    hora = str(data.get('hora'))   # Recibimos la hora (ej: "8")
+    fecha = str(data.get('fecha')) 
+    hora = str(data.get('hora'))   
     nombre = data.get('nombre')
     email = str(data.get('email')).strip().lower()
     
@@ -176,7 +180,6 @@ def admin_guardar_cupos():
     # Actualizamos los cupos para todos los días registrados
     for dia_str, dia_data in datos.get("agendaDias", {}).items():
         if "8" in dia_data:
-            # Calculamos cuántos hay ocupados para ajustar los disponibles reales
             ocupados = sum(1 for p in dia_data.get("personas", []) if p["hora"] == "8:00 AM")
             dia_data["8"]["totales"] = c8
             dia_data["8"]["disponibles"] = max(0, c8 - ocupados)
@@ -280,4 +283,3 @@ def admin_eliminar_rut():
 
 if __name__ == '__main__':
     app.run(debug=True)
-    
