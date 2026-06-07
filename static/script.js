@@ -40,6 +40,9 @@ function cargarDatosDelServidor() {
             
             // Refrescar la tabla de asistencia del Administrador según su fecha elegida
             actualizarTablaAdminAsistencia();
+
+            // 🔥 NUEVO: Actualizar las cajitas de los cupos con la info real
+            actualizarInputsCuposAdmin();
         })
         .catch(error => console.error("Error al conectar con Python:", error));
 }
@@ -407,4 +410,26 @@ function guardarCuposEstandarAdmin() {
         }
     })
     .catch(error => alert("Error al guardar la nueva configuración de cupos."));
+}
+
+// --- FUNCIÓN PARA REFLEJAR LOS CUPOS REALES EN EL PANEL ADMIN ---
+function actualizarInputsCuposAdmin() {
+    if (!datosGlobales || !datosGlobales.agendaDias) return;
+
+    // Buscamos si hay días guardados para ver cuántos cupos totales tienen
+    const diasGuardados = Object.keys(datosGlobales.agendaDias);
+    
+    if (diasGuardados.length > 0) {
+        // Tomamos cualquier día de referencia para leer la configuración actual
+        const diaDeReferencia = datosGlobales.agendaDias[diasGuardados[0]];
+
+        const input8 = document.getElementById("input-cupos-8");
+        const input9 = document.getElementById("input-cupos-9");
+        const input10 = document.getElementById("input-cupos-10");
+
+        // Si existen los inputs, les ponemos el número real de la base de datos
+        if (input8 && diaDeReferencia["8"]) input8.value = diaDeReferencia["8"].totales;
+        if (input9 && diaDeReferencia["9"]) input9.value = diaDeReferencia["9"].totales;
+        if (input10 && diaDeReferencia["10"]) input10.value = diaDeReferencia["10"].totales;
+    }
 }
