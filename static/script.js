@@ -360,8 +360,18 @@ function actualizarListaRutsDom(listaRuts) {
 
     listaRuts.forEach(rut => {
         const item = document.createElement("li");
-        item.style = "display: flex; justify-content: space-between; align-items: center; padding: 6px 8px; border-bottom: 1px solid #3a3a3c; color: white; font-size: 13px;";
-        item.innerHTML = `<span>${rut}</span><button onclick="eliminarRutAdmin('${rut}')" style="background:none; border:none; color:#ef4444; cursor:pointer;">❌</button>`;
+        item.style.display = "flex";
+        item.style.justifyContent = "space-between";
+        item.style.alignItems = "center";
+        item.style.padding = "8px 10px";
+        item.style.borderBottom = "1px solid #3a3a3c";
+        item.style.color = "white";
+        item.style.fontSize = "14px";
+        
+        item.innerHTML = `
+            <span>${rut}</span>
+            <button onclick="eliminarRutAdmin('${rut}')" style="background: none; border: none; color: #ef4444; cursor: pointer; font-size: 14px; font-weight: bold; padding: 0 5px;">×</button>
+        `;
         contenedor.appendChild(item);
     });
 }

@@ -414,3 +414,51 @@ input[type="date"]:focus {
         font-size: 14px;
     }
 }
+
+/* ==========================================================================
+   PARCHE DE ALINEACIÓN COMPLETA PARA EL PANEL DE 3 COLUMNAS
+   ========================================================================== */
+
+/* Forzar que el panel principal ocupe todo el ancho disponible y crezca hacia abajo */
+.panel-admin {
+    background-color: #121214 !important;
+    width: 100% !important;
+    max-width: 1400px !important;
+    margin: 20px auto !important;
+    box-sizing: border-box;
+    display: block !important;
+    height: auto !important; /* Evita que el fondo se quede a la mitad */
+    overflow: hidden;
+}
+
+/* Rediseño del Grid para evitar colisiones entre los 3 subpaneles */
+.admin-grid {
+    display: grid !important;
+    grid-template-columns: 1fr 1.2fr 1.8fr !important; /* Proporciones perfectas */
+    gap: 25px !important;
+    align-items: start !important;
+    width: 100%;
+}
+
+/* Asegurar que cada tarjeta interna tenga su fondo independiente y no se pisen */
+.subpanel {
+    background: #1c1c1e !important;
+    padding: 20px !important;
+    border-radius: 8px !important;
+    border: 1px solid #2c2c2e !important;
+    box-sizing: border-box;
+    min-height: 380px; /* Altura mínima uniforme */
+}
+
+/* Ajuste responsivo para que no se rompa en pantallas medianas o notebooks chicas */
+@media (max-width: 1200px) {
+    .admin-grid {
+        grid-template-columns: 1fr 1fr !important; /* Pasa a 2 columnas si no cabe */
+    }
+}
+
+@media (max-width: 768px) {
+    .admin-grid {
+        grid-template-columns: 1fr !important; /* 1 columna en celulares */
+    }
+}
