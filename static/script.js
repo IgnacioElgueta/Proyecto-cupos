@@ -45,7 +45,7 @@ function cargarDatosDelServidor() {
 }
 
 
-// --- LÓGICA DE NAVEGACIÓN Y AGNDA DEL ALUMNO ---
+// --- LÓGICA DE NAVEGACIÓN Y AGENDA DEL ALUMNO ---
 
 function validarRutAcceso(event) {
     event.preventDefault();
@@ -213,7 +213,7 @@ function autenticarAdmin(event) {
             document.getElementById("seccion-login-admin").style.display = "none";
             document.getElementById("panel-admin-box").style.display = "block";
             
-            // 🔥 SOLUCIÓN AQUÍ: Forzamos la recarga inmediata del servidor ahora que el contenedor ya existe en el DOM visible
+            // Forzamos la recarga inmediata del servidor ahora que el panel es visible
             cargarDatosDelServidor();
         } else {
             alert(data.message);
@@ -282,7 +282,7 @@ function eliminarUsuarioAdmin(email, hora) {
     .catch(error => alert("Error al intentar eliminar."));
 }
 
-// Nueva Función: Envía el rango de fechas de semanas para habilitar/bloquear en bloque
+// Envía el rango de fechas de semanas para habilitar/bloquear en bloque
 function configurarCalendarioAdmin(accion) {
     const fInicio = document.getElementById("admin-fecha-inicio").value;
     const fFin = document.getElementById("admin-fecha-fin").value;
@@ -376,4 +376,31 @@ function actualizarListaRutsDom(listaRuts) {
         `;
         contenedor.appendChild(item);
     });
+}
+
+// --- NUEVA FUNCIÓN: ENVIAR LOS CUPOS CONFIGURADOS A PYTHON ---
+function guardarCuposEstandarAdmin() {
+    const cupos8 = document.getElementById("input-cupos-8").value;
+    const cupos9 = document.getElementById("input-cupos-9").value;
+    const cupos10 = document.getElementById("input-cupos-10").value;
+
+    fetch('/api/admin/guardar-cupos', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            cupos_8: parseInt(cupos8) || 10,
+            cupos_9: parseInt(cupos9) || 10,
+            cupos_10: parseInt(cupos10) || 10
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(data.message);
+            cargarDatosDelServidor(); // Recarga y refresca todo el sistema con las nuevas capacidades
+        } else {
+            alert(data.message);
+        }
+    })
+    .catch(error => alert("Error al guardar la nueva configuración de cupos."));
 }
