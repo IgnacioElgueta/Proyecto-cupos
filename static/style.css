@@ -1,0 +1,308 @@
+/* Configuración General (Estilo Oscuro/Deportivo) */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+body {
+    background-color: #121214;
+    color: #ffffff;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-height: 100vh;
+    padding: 40px 20px;
+}
+
+header {
+    text-align: center;
+    margin-bottom: 40px;
+}
+
+header h1 {
+    font-size: 2.5rem;
+    color: #ccff00; /* Verde neón deportivo */
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    margin-bottom: 10px;
+}
+
+header p {
+    color: #a8a8b3;
+    font-size: 1.1rem;
+}
+
+/* Contenedor de las Tarjetas */
+.contenedor-horarios {
+    width: 100%;
+    max-width: 500px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+/* Diseño de la Tarjeta de Horario */
+.tarjeta-horario {
+    background-color: #202024;
+    border: 1px solid #29292e;
+    border-radius: 12px;
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+    transition: transform 0.2s;
+}
+
+.tarjeta-horario:hover {
+    transform: translateY(-3px);
+    border-color: #ccff00;
+}
+
+.hora {
+    font-size: 1.8rem;
+    font-weight: bold;
+    color: #ffffff;
+}
+
+.clase {
+    font-size: 1rem;
+    color: #ccff00;
+    background-color: rgba(204, 255, 0, 0.1);
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-weight: 600;
+}
+
+.cupos {
+    font-size: 1.1rem;
+    color: #e1e1e6;
+}
+
+.cupos span {
+    font-weight: bold;
+    color: #00ff88; /* Verde para cupos disponibles */
+}
+
+/* Botones */
+.acciones {
+    display: flex;
+    gap: 12px;
+    width: 100%;
+    margin-top: 8px;
+}
+
+.btn {
+    flex: 1;
+    padding: 12px;
+    border: none;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background-color 0.2s, transform 0.1s;
+}
+
+.btn:active {
+    transform: scale(0.98);
+}
+
+.btn-reservar {
+    background-color: #ccff00;
+    color: #121214;
+}
+
+.btn-reservar:hover {
+    background-color: #b3df00;
+}
+
+.btn-cancelar {
+    background-color: #29292e;
+    color: #e1e1e6;
+    border: 1px solid #323238;
+}
+
+.btn-cancelar:hover {
+    background-color: #f74141;
+    color: #ffffff;
+    border-color: #f74141;
+}
+
+footer {
+    margin-top: auto;
+    padding-top: 40px;
+    color: #7c7c8a;
+    font-size: 0.85rem;
+}
+/* Estilos para el Panel de Administración */
+.panel-admin {
+    margin-top: 50px;
+    background-color: #1a1a1e;
+    border: 2px dashed #323238;
+    border-radius: 12px;
+    padding: 24px;
+    width: 100%;
+    max-width: 500px;
+}
+
+.panel-admin h2 {
+    color: #ccff00;
+    font-size: 1.4rem;
+    margin-bottom: 5px;
+}
+
+.panel-admin p {
+    color: #a8a8b3;
+    font-size: 0.9rem;
+    margin-bottom: 20px;
+}
+
+.control-cupos {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.input-grupo {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.input-grupo label {
+    font-weight: 600;
+    color: #e1e1e6;
+}
+
+.input-grupo input {
+    background-color: #121214;
+    border: 1px solid #29292e;
+    color: white;
+    padding: 8px;
+    border-radius: 6px;
+    width: 80px;
+    text-align: center;
+    font-size: 1rem;
+}
+
+.btn-guardar {
+    background-color: #00ff88; /* Verde éxito */
+    color: #121214;
+    margin-top: 10px;
+}
+
+.btn-guardar:hover {
+    background-color: #00e676;
+}
+/* Estilos para el formulario de registro de usuario */
+.tarjeta-registro {
+    background-color: #202024;
+    border: 2px solid #ccff00;
+    border-radius: 12px;
+    padding: 24px;
+    margin-top: 20px;
+    box-shadow: 0 4px 15px rgba(204, 255, 0, 0.1);
+}
+.tarjeta-registro h2 {
+    color: #ffffff;
+    font-size: 1.4rem;
+    margin-bottom: 5px;
+}
+.input-grupo-registro {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 15px;
+    text-align: left;
+}
+.input-grupo-registro label {
+    color: #e1e1e6;
+    font-weight: 600;
+}
+.input-grupo-registro input {
+    background-color: #121214;
+    border: 1px solid #29292e;
+    color: white;
+    padding: 12px;
+    border-radius: 6px;
+    font-size: 1rem;
+    width: 100%;
+}
+/* Botón para abrir/cerrar admin */
+.btn-toggle-admin {
+    background-color: #29292e;
+    color: #a8a8b3;
+    border: 1px solid #323238;
+    max-width: 280px;
+    margin: 20px auto;
+}
+.btn-toggle-admin:hover {
+    background-color: #323238;
+    color: #ffffff;
+}
+
+/* Encabezado del Panel */
+.admin-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #29292e;
+    padding-bottom: 10px;
+    margin-bottom: 20px;
+}
+.btn-cerrar-admin {
+    background: none;
+    border: none;
+    color: #f74141;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+/* Diseño en paralelo (Grid) para pantallas grandes */
+.panel-admin {
+    max-width: 900px !important; /* Lo hacemos más ancho para que quepa la tabla */
+}
+.admin-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 30px;
+}
+.subpanel {
+    flex: 1;
+    min-width: 250px;
+}
+.subpanel h3 {
+    font-size: 1.1rem;
+    color: #e1e1e6;
+    margin-bottom: 15px;
+    border-left: 3px solid #ccff00;
+    padding-left: 8px;
+}
+
+/* Estilos de la Tabla de Registrados */
+.tabla-contenedor {
+    background-color: #121214;
+    border-radius: 8px;
+    padding: 10px;
+    max-height: 200px;
+    overflow-y: auto;
+}
+table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+    text-align: left;
+}
+th {
+    color: #ccff00;
+    padding: 8px;
+    border-bottom: 1px solid #29292e;
+}
+td {
+    padding: 8px;
+    color: #e1e1e6;
+    border-bottom: 1px solid #1a1a1e;
+}

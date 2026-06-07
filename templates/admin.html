@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel de Control - Box Crossfit</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+    <header>
+        <h1>Panel de Administración</h1>
+        <p>Acceso exclusivo para el dueño del Box</p>
+    </header>
+
+    <main class="contenedor-horarios">
+        <section id="seccion-login-admin" class="tarjeta-registro" style="max-width: 400px; margin: 40px auto;">
+            <h2>Ingreso Seguro</h2>
+            <form id="form-login-admin" onsubmit="autenticarAdmin(event)">
+                <div class="input-grupo-registro">
+                    <label>Usuario:</label>
+                    <input type="text" id="admin-usuario" required placeholder="Usuario administrador">
+                </div>
+                <div class="input-grupo-registro">
+                    <label>Contraseña:</label>
+                    <input type="password" id="admin-password" required placeholder="••••••••">
+                </div>
+                <button type="submit" class="btn btn-guardar" style="width: 100%; margin-top: 15px;">Iniciar Sesión</button>
+            </form>
+        </section>
+
+        <section id="panel-admin-box" class="panel-admin" style="display: none; width: 100%; max-width: 900px; margin: 20px auto;">
+            <div class="admin-header">
+                <h2>Control de Cupos y Asistencia</h2>
+                <button class="btn-cerrar-admin" onclick="cerrarSesionAdmin()" style="background: #f74141; color: white; padding: 5px 10px; border: none; border-radius: 4px; cursor: pointer;">❌ Salir</button>
+            </div>
+            
+            <div class="admin-grid">
+                <div class="subpanel">
+                    <h3>Ajustar Cupos Totales</h3>
+                    <div class="control-cupos">
+                        <div class="input-grupo">
+                            <label>08:00 AM:</label>
+                            <input type="number" id="input-cupos-8" value="10" min="0">
+                        </div>
+                        <div class="input-grupo">
+                            <label>09:00 AM:</label>
+                            <input type="number" id="input-cupos-9" value="10" min="0">
+                        </div>
+                        <div class="input-grupo">
+                            <label>10:00 AM:</label>
+                            <input type="number" id="input-cupos-10" value="10" min="0">
+                        </div>
+                        <button class="btn btn-guardar" onclick="actualizarAdmin()">Actualizar Totales</button>
+                    </div>
+                </div>
+
+                <div class="subpanel">
+                    <h3>Personas Registradas</h3>
+                    <div class="tabla-contenedor">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Hora</th>
+                                    <th>Nombre</th>
+                                    <th>Email</th>
+                                </tr>
+                            </thead>
+                            <tbody id="lista-registrados">
+                                <tr id="sin-registros">
+                                    <td colspan="3" style="text-align: center; color: #7c7c8a;">No hay reservas aún</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <script src="/static/script.js"></script>
+</body>
+</html>
