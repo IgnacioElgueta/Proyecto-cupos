@@ -1,29 +1,44 @@
 from flask import Flask, render_template, jsonify, request
 import json
 import os
+from datetime import datetime, timedelta
 
 app = Flask(__name__)
 
 # Archivo permanente en el disco de Render
 ARCHIVO_DB = "datos_box.json"
 
-# Configuración base con soporte para la lista de RUTs autorizados
+# Configuración base inicial
 DATOS_INICIALES = {
-    "datosCupos": {
-        "8": {"disponibles": 10, "totales": 10},
-        "9": {"disponibles": 10, "totales": 10},
-        "10": {"disponibles": 10, "totales": 10}
-    },
-    "listaPersonas": [],
-    "listaRuts": []  # Aquí se guardarán los RUTs permitidos (ej: ["12345678-9", "9876543-2"])
+    "listaRuts": [],
+    "fechasHabilitadas": [],  # Ejemplo: ["2026-06-08", "2026-06-09"]
+    "agendaDias": {}          # Estructura: {"2026-06-08": {"8": {"disponibles": 10, "totales": 10}, ...}}
 }
 
 def cargar_datos():
-    """Carga los datos desde el archivo permanente."""
+    """Carga los datos desde el archivo permanente y auto-genera días si está vacío."""
     if not os.path.exists(ARCHIVO_DB):
-        with open(ARCHIVO_DB, 'w', encoding='utf-8') as f:
-            json.dump(DATOS_INICIALES, f, indent=4, ensure_ascii=False)
-        return DATOS_INICIALES
+        # Por defecto, habilitamos las próximas 2 semanas de forma automática al inicio
+        hoy = datetime.now()
+        fechas = []
+        agenda = {}
+        for i in range(14):
+            dia_str = (hoy + timedelta(days=i)).strftime("%Y-%m-%d")
+            fechas.append(dia_str)
+            agenda[dia_str] = {
+                "8": {"disponibles": 10, "totales": 10},
+                "9": {"disponibles": 10, "totales": 10},
+                "10": {"disponibles": 10, "totales": 10},
+                "personas": [] # Las personas ahora se guardan por cada día específico
+            }
+        
+        datos = {
+            "listaRuts": [],
+            "fechasHabilitadas": fechas,
+            "agendaDias": agenda
+        }
+        guardar_datos(datos)
+        return datos
     
     try:
         with open(ARCHIVO_DB, 'r', encoding='utf-8') as f:
@@ -35,6 +50,7 @@ def guardar_datos(datos):
     """Guarda los datos actuales en el archivo permanente."""
     with open(ARCHIVO_DB, 'w', encoding='utf-8') as f:
         json.dump(datos, f, indent=4, ensure_ascii=False)
+
 
 # --- RUTAS DE NAVEGACIÓN (PÁGINAS) ---
 
@@ -54,14 +70,13 @@ def obtener_datos():
     datos = cargar_datos()
     return jsonify(datos)
 
-# API: Verificar si un RUT está autorizado para reservar
+# API: Verificar RUT del Alumno
 @app.route('/api/verificar-rut', methods=['POST'])
 def verificar_rut():
     data = request.json
     rut_usuario = str(data.get('rut')).strip().lower()
     
     datos = cargar_datos()
-    # Buscamos el RUT ignorando mayúsculas/minúsculas y espacios
     lista_ruts_limpios = [str(r).strip().lower() for r in datos.get("listaRuts", [])]
     
     if rut_usuario in lista_ruts_limpios:
@@ -69,142 +84,168 @@ def verificar_rut():
     
     return jsonify({"success": False, "message": "El RUT ingresado no figura como alumno activo del Box."}), 403
 
+# API: Reservar Cupo con Fecha Específica
 @app.route('/api/reservar', methods=['POST'])
 def reservar():
     data = request.json
-    hora = str(data.get('hora'))
+    fecha = str(data.get('fecha')) # Recibimos la fecha elegida (ej: "2026-06-08")
+    hora = str(data.get('hora'))   # Recibimos la hora (ej: "8")
     nombre = data.get('nombre')
-    email = data.get('email')
+    email = str(data.get('email')).strip().lower()
     
     datos = cargar_datos()
-    datos_cupos = datos["datosCupos"]
-    lista_personas = datos["listaPersonas"]
     
-    if hora in datos_cupos and datos_cupos[hora]["disponibles"] > 0:
-        datos_cupos[hora]["disponibles"] -= 1
-        lista_personas.append({
+    # Validar si la fecha está habilitada por el admin
+    if fecha not in datos["fechasHabilitadas"] or fecha not in datos["agendaDias"]:
+        return jsonify({"success": False, "message": "Esta fecha no se encuentra habilitada para reservas."}), 400
+        
+    dia_actual = datos["agendaDias"][fecha]
+    
+    # 🔥 ESCUDO ANTITRAMPAS: Verificar si este correo ya reservó para ESTE MISMO DÍA
+    for persona in dia_actual.get("personas", []):
+        if persona["email"] == email:
+            return jsonify({
+                "success": False, 
+                "message": f"Ya tienes una reserva registrada para este día en el horario de las {persona['hora']}. Solo se permite 1 cupo diario."
+            }), 400
+            
+    # Proceder con la reserva en la fecha y hora correspondiente
+    if hora in dia_actual and dia_actual[hora]["disponibles"] > 0:
+        dia_actual[hora]["disponibles"] -= 1
+        dia_actual["personas"].append({
             "hora": f"{hora}:00 AM",
             "nombre": nombre,
             "email": email
         })
         
         guardar_datos(datos)
-        return jsonify({"success": True, "message": f"¡Reserva confirmada para las {hora}:00 AM!"})
+        return jsonify({"success": True, "message": f"¡Reserva confirmada para el {fecha} a las {hora}:00 AM!"})
     
-    return jsonify({"success": False, "message": "No quedan cupos disponibles."}), 400
+    return jsonify({"success": False, "message": "No quedan cupos disponibles para este horario."}), 400
 
+# API: Cancelar Cupo en Fecha Específica
 @app.route('/api/cancelar', methods=['POST'])
 def cancelar():
     data = request.json
+    fecha = str(data.get('fecha'))
     hora = str(data.get('hora'))
     texto_hora = f"{hora}:00 AM"
     
     datos = cargar_datos()
-    datos_cupos = datos["datosCupos"]
-    lista_personas = datos["listaPersonas"]
+    if fecha not in datos["agendaDias"]:
+        return jsonify({"success": False, "message": "Fecha no válida."}), 400
+        
+    dia_actual = datos["agendaDias"][fecha]
     
     eliminado = False
-    for i, persona in enumerate(lista_personas):
+    for i, persona in enumerate(dia_actual.get("personas", [])):
         if persona["hora"] == texto_hora:
-            lista_personas.pop(i)
+            dia_actual["personas"].pop(i)
             eliminado = True
             break
             
-    if eliminado and hora in datos_cupos and datos_cupos[hora]["disponibles"] < datos_cupos[hora]["totales"]:
-        datos_cupos[hora]["disponibles"] += 1
+    if eliminado and hora in dia_actual and dia_actual[hora]["disponibles"] < dia_actual[hora]["totales"]:
+        dia_actual[hora]["disponibles"] += 1
         guardar_datos(datos)
         return jsonify({"success": True, "message": "Cupo liberado con éxito."})
         
-    return jsonify({"success": False, "message": "No hay reservas que cancelar."}), 400
+    return jsonify({"success": False, "message": "No tienes reservas que cancelar en este horario."}), 400
 
 
-# --- ENDPOINTS EXCLUSIVOS DEL ADMINISTRADOR ---
+# --- ENDPOINTS DEL ADMINISTRADOR ---
 
 @app.route('/api/admin/login', methods=['POST'])
 def admin_login():
     data = request.json
     usuario = data.get('usuario')
     password = data.get('password')
-    
     if usuario == "admin" and password == "Entrenamiento":
         return jsonify({"success": True, "message": "Acceso concedido"})
-    
-    return jsonify({"success": False, "message": "Usuario o contraseña incorrectos"}), 401
+    return jsonify({"success": False, "message": "Credenciales incorrectas"}), 401
 
-@app.route('/api/admin/actualizar', methods=['POST'])
-def actualizar_admin():
+# API ADMIN: Habilitar o Deshabilitar Rangos de Fechas
+@app.route('/api/admin/configurar-calendario', methods=['POST'])
+def admin_configurar_calendario():
     data = request.json
-    datos = cargar_datos()
-    datos_cupos = datos["datosCupos"]
+    fecha_inicio_str = data.get('fechaInicio')
+    fecha_fin_str = data.get('fechaFin')
+    accion = data.get('accion') # "habilitar" o "deshabilitar"
     
-    for hora, nuevo_total in data.items():
-        if hora in datos_cupos:
-            ocupados = datos_cupos[hora]["totales"] - datos_cupos[hora]["disponibles"]
-            datos_cupos[hora]["totales"] = nuevo_total
-            datos_cupos[hora]["disponibles"] = max(0, nuevo_total - ocupados)
-            
+    if not fecha_inicio_str or not fecha_fin_str:
+        return jsonify({"success": False, "message": "Debes seleccionar ambas fechas."}), 400
+        
+    datos = cargar_datos()
+    
+    inicio = datetime.strptime(fecha_inicio_str, "%Y-%m-%d")
+    fin = datetime.strptime(fecha_fin_str, "%Y-%m-%d")
+    
+    # Recorrer todos los días del rango seleccionado
+    curr = inicio
+    while curr <= fin:
+        dia_str = curr.strftime("%Y-%m-%d")
+        
+        if accion == "habilitar":
+            if dia_str not in datos["fechasHabilitadas"]:
+                datos["fechasHabilitadas"].append(dia_str)
+            if dia_str not in datos["agendaDias"]:
+                # Si el día no existía, lo creamos con cupos base estándar (10)
+                datos["agendaDias"][dia_str] = {
+                    "8": {"disponibles": 10, "totales": 10},
+                    "9": {"disponibles": 10, "totales": 10},
+                    "10": {"disponibles": 10, "totales": 10},
+                    "personas": []
+                }
+        elif accion == "deshabilitar":
+            if dia_str in datos["fechasHabilitadas"]:
+                datos["fechasHabilitadas"].remove(dia_str)
+                
+        curr += timedelta(days=1)
+        
     guardar_datos(datos)
-    return jsonify({"success": True, "message": "Cupos actualizados con éxito."})
+    return jsonify({"success": True, "message": f"Semanas/Días modificados con éxito ({accion}r)."})
 
 @app.route('/api/admin/eliminar-usuario', methods=['POST'])
 def admin_eliminar_usuario():
     data = request.json
+    fecha = str(data.get('fecha'))
     email_a_eliminar = data.get('email')
     hora_persona = data.get('hora')
     hora_clave = hora_persona.split(":")[0]
     
     datos = cargar_datos()
-    datos_cupos = datos["datosCupos"]
-    lista_personas = datos["listaPersonas"]
-    
-    eliminado = False
-    for i, persona in enumerate(lista_personas):
-        if persona["email"] == email_a_eliminar and persona["hora"] == hora_persona:
-            lista_personas.pop(i)
-            eliminado = True
-            break
-            
-    if eliminado:
-        if hora_clave in datos_cupos and datos_cupos[hora_clave]["disponibles"] < datos_cupos[hora_clave]["totales"]:
-            datos_cupos[hora_clave]["disponibles"] += 1
-        guardar_datos(datos)
-        return jsonify({"success": True, "message": "Usuario eliminado y cupo liberado."})
-        
-    return jsonify({"success": False, "message": "No se encontró el registro."}), 404
+    if fecha in datos["agendaDias"]:
+        dia_actual = datos["agendaDias"][fecha]
+        for i, persona in enumerate(dia_actual.get("personas", [])):
+            if persona["email"] == email_a_eliminar and persona["hora"] == hora_persona:
+                dia_actual["personas"].pop(i)
+                if hora_clave in dia_actual:
+                    dia_actual[hora_clave]["disponibles"] += 1
+                guardar_datos(datos)
+                return jsonify({"success": True, "message": "Usuario eliminado del día."})
+                
+    return jsonify({"success": False, "message": "Registro no encontrado."}), 404
 
-# API ADMINISTRADOR: Agregar un nuevo RUT autorizado
 @app.route('/api/admin/agregar-rut', methods=['POST'])
 def admin_agregar_rut():
     data = request.json
     nuevo_rut = str(data.get('rut')).strip()
-    
-    if not nuevo_rut:
-        return jsonify({"success": False, "message": "El RUT no puede estar vacío."}), 400
-        
     datos = cargar_datos()
-    if "listaRuts" not in datos:
-        datos["listaRuts"] = []
-        
     if nuevo_rut in datos["listaRuts"]:
-        return jsonify({"success": False, "message": "Este RUT ya está autorizado."}), 400
-        
+        return jsonify({"success": False, "message": "Este RUT ya existe."}), 400
     datos["listaRuts"].append(nuevo_rut)
     guardar_datos(datos)
-    return jsonify({"success": True, "message": f"RUT {nuevo_rut} agregado exitosamente."})
+    return jsonify({"success": True, "message": "RUT agregado con éxito."})
 
-# API ADMINISTRADOR: Eliminar un RUT autorizado
 @app.route('/api/admin/eliminar-rut', methods=['POST'])
 def admin_eliminar_rut():
     data = request.json
     rut_a_eliminar = str(data.get('rut')).strip()
-    
     datos = cargar_datos()
-    if "listaRuts" in datos and rut_a_eliminar in datos["listaRuts"]:
+    if rut_a_eliminar in datos["listaRuts"]:
         datos["listaRuts"].remove(rut_a_eliminar)
         guardar_datos(datos)
-        return jsonify({"success": True, "message": "RUT eliminado de los autorizados."})
-        
-    return jsonify({"success": False, "message": "RUT no encontrado."}), 404
+        return jsonify({"success": True, "message": "RUT eliminado."})
+    return jsonify({"success": False, "message": "No encontrado."}), 404
 
 if __name__ == '__main__':
     app.run(debug=True)

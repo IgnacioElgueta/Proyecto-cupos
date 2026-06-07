@@ -382,3 +382,35 @@ td {
         padding: 15px;
     }
 }
+/* ==========================================================================
+   MEJORAS VISUALES PARA EL CALENDARIO Y ESTADOS DE FECHA
+   ========================================================================== */
+
+/* Efecto focus iluminado para las cajas de fecha (inputs tipo date) */
+input[type="date"] {
+    outline: none;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+    font-family: inherit;
+    cursor: pointer;
+}
+
+input[type="date"]:focus {
+    border-color: #ffbc0d !important;
+    box-shadow: 0 0 8px rgba(255, 188, 13, 0.4);
+}
+
+/* Animación de parpadeo sutil para el estado de la agenda bloqueada/abierta */
+#estado-fecha-texto {
+    transition: all 0.3s ease;
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 4px;
+    background: rgba(0, 0, 0, 0.2);
+}
+
+/* Ajustes para los botones de Habilitar/Bloquear del admin en celulares */
+@media (max-width: 500px) {
+    #admin-fecha-inicio, #admin-fecha-fin {
+        font-size: 14px;
+    }
+}

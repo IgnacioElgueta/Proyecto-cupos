@@ -1,37 +1,52 @@
-// Variables de control local de la sesión
-let horarioEnProceso = null;
-let yaTieneReserva = false; 
+// Variables de control de la sesión global
+let datosGlobales = null;
+let yaTieneReserva = false;
 
-// Al cargar la página, le pedimos los datos reales al servidor Python
+// Al cargar la página, inicializamos las fechas del sistema
 document.addEventListener("DOMContentLoaded", () => {
+    // Seteamos la fecha de hoy por defecto en los inputs tipo date
+    const hoyStr = obtenerFechaHoyString();
+    
+    const selectorReserva = document.getElementById("selector-fecha-reserva");
+    if (selectorReserva) selectorReserva.value = hoyStr;
+
+    const selectorAdmin = document.getElementById("selector-fecha-admin");
+    if (selectorAdmin) selectorAdmin.value = hoyStr;
+
     cargarDatosDelServidor();
 });
 
-// 1. FUNCIÓN PARA OBTENER DATOS DESDE PYTHON
+// Función útil para obtener la fecha de hoy en formato YYYY-MM-DD local
+function obtenerFechaHoyString() {
+    const d = new Date();
+    const mes = '' + (d.getMonth() + 1);
+    const dia = '' + d.getDate();
+    const anio = d.getFullYear();
+    return [anio, mes.padStart(2, '0'), dia.padStart(2, '0')].join('-');
+}
+
+// 1. FUNCIÓN PRINCIPAL PARA SINCRONIZAR CON PYTHON
 function cargarDatosDelServidor() {
     fetch('/api/datos')
         .then(response => response.json())
         .then(data => {
-            // Actualizar los textos de cupos en las tarjetas
-            for (let hora in data.datosCupos) {
-                const cupo = data.datosCupos[hora];
-                const elementoCupo = document.getElementById(`cupos-${hora}`);
-                if (elementoCupo) {
-                    elementoCupo.innerText = `${cupo.disponibles} / ${cupo.totales}`;
-                }
-            }
-            // Actualizar la tabla de asistencia en el panel de administración
-            actualizarTablaAdmin(data.listaPersonas);
+            datosGlobales = data; // Almacenamos el gran JSON
             
-            // Actualizar la lista visual de RUTs autorizados en el panel
+            // Refrescar la interfaz del Alumno
+            actualizarInterfazHorariosAlumno();
+            
+            // Refrescar la interfaz del Administrador (RUTs)
             actualizarListaRutsDom(data.listaRuts);
+            
+            // Refrescar la tabla de asistencia del Administrador según su fecha elegida
+            actualizarTablaAdminAsistencia();
         })
         .catch(error => console.error("Error al conectar con Python:", error));
 }
 
-// --- LÓGICA DE CONTROL DE ACCESO (ALUMNOS) ---
 
-// Nueva Función: Valida el RUT del alumno contra la lista blanca en Python
+// --- LÓGICA DE NAVEGACIÓN Y AGNDA DEL ALUMNO ---
+
 function validarRutAcceso(event) {
     event.preventDefault();
     const rutInput = document.getElementById("rut-alumno").value;
@@ -44,28 +59,81 @@ function validarRutAcceso(event) {
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            // Ocultamos la pantalla de RUT y mostramos el panel de reservas
             document.getElementById("pantalla-rut").style.display = "none";
             document.getElementById("contenido-reserva-box").style.display = "block";
+            actualizarInterfazHorariosAlumno();
         } else {
             alert(data.message);
         }
     })
-    .catch(error => {
-        alert("El RUT ingresado no está autorizado o no figura como alumno activo.");
-    });
+    .catch(error => alert("El RUT ingresado no está autorizado."));
+}
+
+// Se ejecuta cada vez que el alumno cambia el día en el calendario
+function cambiarFechaAgenda() {
+    actualizarInterfazHorariosAlumno();
+    // Cerramos el formulario de datos por si estaba abierto, para evitar confusiones
+    document.getElementById("seccion-registro").style.display = "none";
+}
+
+function actualizarInterfazHorariosAlumno() {
+    if (!datosGlobales) return;
+
+    const fechaElegida = document.getElementById("selector-fecha-reserva").value;
+    const textoEstado = document.getElementById("estado-fecha-texto");
+    const contenedorTarjetas = document.getElementById("contenedor-tarjetas-clases");
+
+    if (!fechaElegida) return;
+
+    // Verificar si el dueño tiene habilitada esta fecha específica
+    const estaHabilitada = datosGlobales.fechasHabilitadas.includes(fechaElegida);
+
+    if (estaHabilitada && datosGlobales.agendaDias[fechaElegida]) {
+        // ACTIVAR INTERFAZ
+        textoEstado.innerText = "🔓 Agenda disponible para reservas";
+        textoEstado.style.color = "#22c55e";
+        contenedorTarjetas.style.opacity = "1";
+        contenedorTarjetas.style.pointerEvents = "auto";
+
+        // Pintar los cupos dinámicos del día seleccionado
+        const diaData = datosGlobales.agendaDias[fechaElegida];
+        const horas = ["8", "9", "10"];
+        horas.forEach(h => {
+            const el = document.getElementById(`cupos-${h}`);
+            if (el && diaData[h]) {
+                el.innerText = `${diaData[h].disponibles} / ${diaData[h].totales}`;
+            }
+        });
+    } else {
+        // BLOQUEAR INTERFAZ (Ej: Si es julio y no está habilitado)
+        textoEstado.innerText = "🔒 Agenda bloqueada o inhabilitada para esta fecha.";
+        textoEstado.style.color = "#ef4444";
+        contenedorTarjetas.style.opacity = "0.3";
+        contenedorTarjetas.style.pointerEvents = "none";
+        
+        // Resetear visualmente a texto vacío/completo
+        ["8", "9", "10"].forEach(h => {
+            const el = document.getElementById(`cupos-${h}`);
+            if (el) el.innerText = "10 / 10";
+        });
+    }
 }
 
 
-// --- LÓGICA DE RESERVAS Y CANCELACIONES ---
+// --- LÓGICA DE PROCESAMIENTO DE RESERVAS (ALUMNOS) ---
+
+let horaEnProceso = null;
 
 function abrirFormulario(hora) {
     if (yaTieneReserva) {
-        alert("Lo sentimos, ya cuentas con una reserva activa hoy.");
+        alert("Ya cuentas con una reserva realizada en tu sesión.");
         return;
     }
     
-    horarioEnProceso = hora;
+    const fechaElegida = document.getElementById("selector-fecha-reserva").value;
+    horaEnProceso = hora;
+    
+    document.getElementById("fecha-seleccionada-texto").innerText = fechaElegida;
     document.getElementById("hora-seleccionada").innerText = `${hora}:00 AM`;
     
     const seccionReg = document.getElementById("seccion-registro");
@@ -76,6 +144,7 @@ function abrirFormulario(hora) {
 function confirmarReserva(event) {
     event.preventDefault();
 
+    const fechaElegida = document.getElementById("selector-fecha-reserva").value;
     const nombreInput = document.getElementById("nombre-usuario").value;
     const emailInput = document.getElementById("email-usuario").value;
 
@@ -83,7 +152,8 @@ function confirmarReserva(event) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-            hora: horarioEnProceso,
+            fecha: fechaElegida,
+            hora: horaEnProceso,
             nombre: nombreInput,
             email: emailInput
         })
@@ -92,49 +162,43 @@ function confirmarReserva(event) {
     .then(data => {
         if (data.success) {
             alert(data.message);
-            yaTieneReserva = true;
-            
+            yaTieneReserva = true; // Control local
             document.getElementById("form-registro").reset();
             document.getElementById("seccion-registro").style.display = "none";
-            
-            cargarDatosDelServidor(); 
+            cargarDatosDelServidor(); // Recargar base completa
         } else {
             alert(data.message);
         }
     })
-    .catch(error => alert("Error al procesar la reserva"));
+    .catch(error => alert("Error al procesar la reserva."));
 }
 
 function cancelarCupoDirecto(hora) {
-    if (!yaTieneReserva) {
-        alert("No tienes ninguna reserva activa para cancelar.");
-        return;
-    }
+    const fechaElegida = document.getElementById("selector-fecha-reserva").value;
 
     fetch('/api/cancelar', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ hora: hora })
+        body: JSON.stringify({ fecha: fechaElegida, hora: hora })
     })
     .then(response => response.json())
     .then(data => {
         if (data.success) {
             alert(data.message);
             yaTieneReserva = false;
-            cargarDatosDelServidor(); 
+            cargarDatosDelServidor();
         } else {
             alert(data.message);
         }
     })
-    .catch(error => alert("Error al cancelar el cupo"));
+    .catch(error => alert("Error al cancelar el cupo."));
 }
 
 
-// --- LÓGICA EXCLUSIVA DEL PANEL DE ADMINISTRACIÓN ---
+// --- LÓGICA PANEL ADMINISTRATIVO EXCLUSIVO ---
 
 function autenticarAdmin(event) {
     event.preventDefault();
-    
     const usuarioInput = document.getElementById("admin-usuario").value;
     const passwordInput = document.getElementById("admin-password").value;
 
@@ -148,30 +212,41 @@ function autenticarAdmin(event) {
         if (data.success) {
             document.getElementById("seccion-login-admin").style.display = "none";
             document.getElementById("panel-admin-box").style.display = "block";
-            cargarDatosDelServidor(); 
+            cargarDatosDelServidor();
         } else {
             alert(data.message);
         }
     })
-    .catch(error => alert("Usuario o contraseña incorrectos"));
+    .catch(error => alert("Credenciales incorrectas."));
 }
 
 function cerrarSesionAdmin() {
     window.location.href = "/";
 }
 
-function actualizarTablaAdmin(listaPersonas) {
+// Se ejecuta si el admin cambia la fecha de revisión de asistencia
+function cambiarFechaAdminAsistencia() {
+    actualizarTablaAdminAsistencia();
+}
+
+function actualizarTablaAdminAsistencia() {
     const tbody = document.getElementById("lista-registrados");
-    if (!tbody) return; 
+    if (!tbody || !datosGlobales) return;
 
-    tbody.innerHTML = ""; 
+    tbody.innerHTML = "";
+    const fechaFiltro = document.getElementById("selector-fecha-admin").value;
 
-    if (!listaPersonas || listaPersonas.length === 0) {
-        tbody.innerHTML = `<tr id="sin-registros"><td colspan="4" style="text-align: center; color: #7c7c8a; padding: 15px;">No hay reservas aún</td></tr>`;
+    if (!fechaFiltro) return;
+
+    const diaData = datosGlobales.agendaDias[fechaFiltro];
+    
+    // Si el día no está configurado o no tiene alumnos guardados
+    if (!diaData || !diaData.personas || diaData.personas.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="4" style="text-align: center; color: #7c7c8a; padding: 15px;">No hay alumnos inscritos para este día.</td></tr>`;
         return;
     }
 
-    listaPersonas.forEach(persona => {
+    diaData.personas.forEach(persona => {
         const fila = document.createElement("tr");
         fila.style.borderBottom = "1px solid #2c2c2e";
         fila.innerHTML = `
@@ -179,7 +254,7 @@ function actualizarTablaAdmin(listaPersonas) {
             <td style="padding: 8px;">${persona.nombre}</td>
             <td style="padding: 8px;">${persona.email}</td>
             <td style="padding: 8px; text-align: center;">
-                <button onclick="eliminarUsuarioAdmin('${persona.email}', '${persona.hora}')" style="background-color: #f74141; color: white; border: none; padding: 4px 10px; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: bold;">Eliminar</button>
+                <button onclick="eliminarUsuarioAdmin('${persona.email}', '${persona.hora}')" style="background: #ef4444; color: white; border: none; padding: 4px 10px; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: bold;">Remover</button>
             </td>
         `;
         tbody.appendChild(fila);
@@ -187,56 +262,57 @@ function actualizarTablaAdmin(listaPersonas) {
 }
 
 function eliminarUsuarioAdmin(email, hora) {
-    if (!confirm(`¿Estás seguro de eliminar a este usuario de las ${hora}?`)) return;
+    const fechaFiltro = document.getElementById("selector-fecha-admin").value;
+    if (!confirm(`¿Eliminar reserva de las ${hora} para el día ${fechaFiltro}?`)) return;
 
     fetch('/api/admin/eliminar-usuario', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: email, hora: hora })
+        body: JSON.stringify({ fecha: fechaFiltro, email: email, hora: hora })
     })
     .then(response => response.json())
     .then(data => {
         if (data.success) {
             alert(data.message);
-            cargarDatosDelServidor(); 
+            cargarDatosDelServidor();
+        }
+    })
+    .catch(error => alert("Error al intentar eliminar."));
+}
+
+// Nueva Función: Envía el rango de fechas de semanas para habilitar/bloquear en bloque
+function configurarCalendarioAdmin(accion) {
+    const fInicio = document.getElementById("admin-fecha-inicio").value;
+    const fFin = document.getElementById("admin-fecha-fin").value;
+
+    if (!fInicio || !fFin) {
+        alert("Por favor, selecciona un rango completo con fecha de inicio y fin.");
+        return;
+    }
+
+    fetch('/api/admin/configurar-calendario', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fechaInicio: fInicio, fechaFin: fFin, accion: accion })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(data.message);
+            cargarDatosDelServidor(); // Recargar todo el JSON modificado
         } else {
             alert(data.message);
         }
     })
-    .catch(error => alert("Error al eliminar al usuario."));
+    .catch(error => alert("Error al configurar las fechas de la agenda."));
 }
 
-function actualizarAdmin() {
-    const nuevosTotales = {
-        "8": parseInt(document.getElementById("input-cupos-8").value) || 0,
-        "9": parseInt(document.getElementById("input-cupos-9").value) || 0,
-        "10": parseInt(document.getElementById("input-cupos-10").value) || 0
-    };
+// --- CONTROLES AUXILIARES DE RUT ---
 
-    fetch('/api/admin/actualizar', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(nuevosTotales)
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            alert(data.message);
-            cargarDatosDelServidor(); 
-        }
-    })
-    .catch(error => alert("Error al actualizar los cupos"));
-}
-
-// Nueva Función: Permite al admin añadir un RUT a la lista blanca
 function agregarRutAdmin() {
     const inputRut = document.getElementById("input-nuevo-rut");
     const nuevoRut = inputRut.value.trim();
-
-    if (!nuevoRut) {
-        alert("Escribe un RUT antes de añadir.");
-        return;
-    }
+    if (!nuevoRut) return;
 
     fetch('/api/admin/agregar-rut', {
         method: 'POST',
@@ -247,18 +323,16 @@ function agregarRutAdmin() {
     .then(data => {
         if (data.success) {
             alert(data.message);
-            inputRut.value = ""; // Limpiar input
-            cargarDatosDelServidor(); // Recargar lista
+            inputRut.value = "";
+            cargarDatosDelServidor();
         } else {
             alert(data.message);
         }
-    })
-    .catch(error => alert("Error al guardar el RUT."));
+    });
 }
 
-// Nueva Función: Permite al admin remover un RUT de la lista blanca
 function eliminarRutAdmin(rut) {
-    if (!confirm(`¿Remover el RUT ${rut} de los alumnos autorizados?`)) return;
+    if (!confirm(`¿Remover acceso para el RUT ${rut}?`)) return;
 
     fetch('/api/admin/eliminar-rut', {
         method: 'POST',
@@ -269,38 +343,25 @@ function eliminarRutAdmin(rut) {
     .then(data => {
         if (data.success) {
             alert(data.message);
-            cargarDatosDelServidor(); 
+            cargarDatosDelServidor();
         }
-    })
-    .catch(error => alert("Error al intentar eliminar el RUT."));
+    });
 }
 
-// Nueva Función: Dibuja la lista de RUTs dinámicamente en el panel
 function actualizarListaRutsDom(listaRuts) {
     const contenedor = document.getElementById("lista-ruts-contenedor");
-    if (!contenedor) return; 
-
+    if (!contenedor) return;
     contenedor.innerHTML = "";
 
     if (!listaRuts || listaRuts.length === 0) {
-        contenedor.innerHTML = `<li style="text-align: center; color: #7c7c8a; padding: 15px; font-size: 13px;">No hay RUTs autorizados</li>`;
+        contenedor.innerHTML = `<li style="text-align: center; color: #7c7c8a; padding: 10px; font-size: 13px;">No hay RUTs autorizados</li>`;
         return;
     }
 
     listaRuts.forEach(rut => {
         const item = document.createElement("li");
-        item.style.display = "flex";
-        item.style.justify = "space-between";
-        item.style.alignItems = "center";
-        item.style.padding = "8px 10px";
-        item.style.borderBottom = "1px solid #3a3a3c";
-        item.style.color = "#ffffff";
-        item.style.fontSize = "14px";
-        
-        item.innerHTML = `
-            <span>${rut}</span>
-            <button onclick="eliminarRutAdmin('${rut}')" style="background: none; border: none; color: #f74141; cursor: pointer; font-size: 12px; font-weight: bold;">❌</button>
-        `;
+        item.style = "display: flex; justify-content: space-between; align-items: center; padding: 6px 8px; border-bottom: 1px solid #3a3a3c; color: white; font-size: 13px;";
+        item.innerHTML = `<span>${rut}</span><button onclick="eliminarRutAdmin('${rut}')" style="background:none; border:none; color:#ef4444; cursor:pointer;">❌</button>`;
         contenedor.appendChild(item);
     });
 }

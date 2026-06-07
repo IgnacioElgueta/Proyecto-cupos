@@ -29,53 +29,78 @@
             </form>
         </section>
 
-        <section id="panel-admin-box" class="panel-admin" style="display: none; width: 100%; max-width: 1200px; margin: 20px auto;">
+        <section id="panel-admin-box" class="panel-admin" style="display: none; width: 100%; max-width: 1300px; margin: 20px auto;">
             <div class="admin-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; padding-bottom: 15px; border-bottom: 2px solid #3f3f46;">
                 <h2>Control Global del Box</h2>
                 <button class="btn-cerrar-admin" onclick="cerrarSesionAdmin()" style="background: #f74141; color: white; padding: 8px 15px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">❌ Salir al Inicio</button>
             </div>
             
-            <div class="admin-grid" style="display: grid; grid-template-columns: 1fr 1.2fr 1.8fr; gap: 25px;">
+            <div class="admin-grid" style="display: grid; grid-template-columns: 1fr 1.3fr 1.7fr; gap: 25px;">
                 
                 <div class="subpanel" style="background: #1c1c1e; padding: 20px; border-radius: 8px; border: 1px solid #2c2c2e;">
-                    <h3 style="margin-top: 0; color: #ffbc0d;">Ajustar Cupos Totales</h3>
-                    <p style="font-size: 13px; color: #7c7c8a; margin-bottom: 15px;">Cambia la capacidad máxima de las clases.</p>
+                    <h3 style="margin-top: 0; color: #ffbc0d;">Capacidad de Clases</h3>
+                    <p style="font-size: 13px; color: #7c7c8a; margin-bottom: 15px;">Establece los cupos iniciales estándar.</p>
                     <div class="control-cupos">
                         <div class="input-grupo" style="margin-bottom: 12px;">
                             <label style="display: block; margin-bottom: 4px;">08:00 AM:</label>
-                            <input type="number" id="input-cupos-8" value="10" min="0" style="width: 100%; padding: 6px; background: #2c2c2e; border: 1px solid #3a3a3c; color: white; border-radius: 4px;">
+                            <input type="number" id="input-cupos-8" value="10" disabled style="width: 100%; padding: 6px; background: #2c2c2e; border: 1px solid #3a3a3c; color: #7c7c8a; border-radius: 4px;">
                         </div>
                         <div class="input-grupo" style="margin-bottom: 12px;">
                             <label style="display: block; margin-bottom: 4px;">09:00 AM:</label>
-                            <input type="number" id="input-cupos-9" value="10" min="0" style="width: 100%; padding: 6px; background: #2c2c2e; border: 1px solid #3a3a3c; color: white; border-radius: 4px;">
+                            <input type="number" id="input-cupos-9" value="10" disabled style="width: 100%; padding: 6px; background: #2c2c2e; border: 1px solid #3a3a3c; color: #7c7c8a; border-radius: 4px;">
                         </div>
                         <div class="input-grupo" style="margin-bottom: 20px;">
                             <label style="display: block; margin-bottom: 4px;">10:00 AM:</label>
-                            <input type="number" id="input-cupos-10" value="10" min="0" style="width: 100%; padding: 6px; background: #2c2c2e; border: 1px solid #3a3a3c; color: white; border-radius: 4px;">
+                            <input type="number" id="input-cupos-10" value="10" disabled style="width: 100%; padding: 6px; background: #2c2c2e; border: 1px solid #3a3a3c; color: #7c7c8a; border-radius: 4px;">
                         </div>
-                        <button class="btn btn-guardar" onclick="actualizarAdmin()" style="width: 100%;">Actualizar Totales</button>
+                        <p style="font-size: 12px; color: #7c7c8a; font-style: italic; text-align: center;">La base se genera automáticamente al habilitar los días.</p>
                     </div>
                 </div>
 
-                <div class="subpanel" style="background: #1c1c1e; padding: 20px; border-radius: 8px; border: 1px solid #2c2c2e;">
-                    <h3 style="margin-top: 0; color: #ffbc0d;">RUTs Autorizados</h3>
-                    <p style="font-size: 13px; color: #7c7c8a; margin-bottom: 15px;">Solo estos RUTs podrán reservar cupos.</p>
+                <div class="subpanel" style="background: #1c1c1e; padding: 20px; border-radius: 8px; border: 1px solid #2c2c2e; display: flex; flex-direction: column; gap: 20px;">
                     
-                    <div style="display: flex; gap: 8px; margin-bottom: 15px;">
-                        <input type="text" id="input-nuevo-rut" placeholder="Ej: 12345678-9" style="flex: 1; padding: 6px; background: #2c2c2e; border: 1px solid #3a3a3c; color: white; border-radius: 4px;">
-                        <button onclick="agregarRutAdmin()" style="background: #ffbc0d; color: black; border: none; padding: 6px 12px; font-weight: bold; border-radius: 4px; cursor: pointer;">Añadir</button>
+                    <div style="border-bottom: 1px solid #3a3a3c; padding-bottom: 20px;">
+                        <h3 style="margin-top: 0; color: #ffbc0d;">Configurar Calendario</h3>
+                        <p style="font-size: 13px; color: #7c7c8a; margin-bottom: 15px;">Habilita o bloquea rangos de fechas (ej: deshabilitar julio).</p>
+                        
+                        <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+                            <div style="flex: 1;">
+                                <label style="font-size: 12px; display: block; margin-bottom: 4px;">Desde:</label>
+                                <input type="date" id="admin-fecha-inicio" style="width: 100%; padding: 6px; background: #2c2c2e; border: 1px solid #3a3a3c; color: white; border-radius: 4px;">
+                            </div>
+                            <div style="flex: 1;">
+                                <label style="font-size: 12px; display: block; margin-bottom: 4px;">Hasta:</label>
+                                <input type="date" id="admin-fecha-fin" style="width: 100%; padding: 6px; background: #2c2c2e; border: 1px solid #3a3a3c; color: white; border-radius: 4px;">
+                            </div>
+                        </div>
+                        
+                        <div style="display: flex; gap: 10px;">
+                            <button onclick="configurarCalendarioAdmin('habilitar')" style="flex: 1; background: #22c55e; color: white; border: none; padding: 8px; font-weight: bold; border-radius: 4px; cursor: pointer;">🔓 Habilitar</button>
+                            <button onclick="configurarCalendarioAdmin('deshabilitar')" style="flex: 1; background: #ef4444; color: white; border: none; padding: 8px; font-weight: bold; border-radius: 4px; cursor: pointer;">🔒 Bloquear</button>
+                        </div>
                     </div>
 
-                    <div style="max-height: 200px; overflow-y: auto; background: #2c2c2e; border-radius: 4px; padding: 5px;">
-                        <ul id="lista-ruts-contenedor" style="list-style: none; padding: 0; margin: 0;">
-                            <li style="text-align: center; color: #7c7c8a; padding: 10px; font-size: 13px;">No hay RUTs registrados</li>
-                        </ul>
+                    <div>
+                        <h3 style="margin-top: 0; color: #ffbc0d;">RUTs Autorizados</h3>
+                        <div style="display: flex; gap: 8px; margin-bottom: 12px;">
+                            <input type="text" id="input-nuevo-rut" placeholder="Ej: 12345678-9" style="flex: 1; padding: 6px; background: #2c2c2e; border: 1px solid #3a3a3c; color: white; border-radius: 4px;">
+                            <button onclick="agregarRutAdmin()" style="background: #ffbc0d; color: black; border: none; padding: 6px 12px; font-weight: bold; border-radius: 4px; cursor: pointer;">Añadir</button>
+                        </div>
+                        <div style="max-height: 140px; overflow-y: auto; background: #2c2c2e; border-radius: 4px; padding: 5px;">
+                            <ul id="lista-ruts-contenedor" style="list-style: none; padding: 0; margin: 0;">
+                                <li style="text-align: center; color: #7c7c8a; padding: 10px; font-size: 13px;">Cargando...</li>
+                            </ul>
+                        </div>
                     </div>
                 </div>
 
                 <div class="subpanel" style="background: #1c1c1e; padding: 20px; border-radius: 8px; border: 1px solid #2c2c2e;">
-                    <h3 style="margin-top: 0; color: #ffbc0d;">Asistencia a Clases</h3>
-                    <p style="font-size: 13px; color: #7c7c8a; margin-bottom: 15px;">Lista en tiempo real de alumnos inscritos en los WODs.</p>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px;">
+                        <h3 style="margin: 0; color: #ffbc0d;">Asistencia Diaria</h3>
+                        <input type="date" id="selector-fecha-admin" onchange="cambiarFechaAdminAsistencia()" style="padding: 5px; background: #2c2c2e; border: 1px solid #3a3a3c; color: white; border-radius: 4px; font-size: 13px;">
+                    </div>
+                    <p style="font-size: 13px; color: #7c7c8a; margin-bottom: 15px;">Alumnos inscritos para el día seleccionado arriba.</p>
+                    
                     <div class="tabla-contenedor" style="overflow-x: auto;">
                         <table style="width: 100%; border-collapse: collapse; text-align: left;">
                             <thead>
@@ -88,7 +113,7 @@
                             </thead>
                             <tbody id="lista-registrados">
                                 <tr id="sin-registros">
-                                    <td colspan="4" style="text-align: center; color: #7c7c8a; padding: 15px;">No hay reservas aún</td>
+                                    <td colspan="4" style="text-align: center; color: #7c7c8a; padding: 15px;">Selecciona una fecha para ver la lista</td>
                                 </tr>
                             </tbody>
                         </table>
