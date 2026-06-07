@@ -79,7 +79,11 @@ function cambiarFechaAgenda() {
 function actualizarInterfazHorariosAlumno() {
     if (!datosGlobales) return;
 
-    const fechaElegida = document.getElementById("selector-fecha-reserva").value;
+    // 🔥 ESTE ES EL SEGURO QUE AGREGAMOS PARA QUE NO FALLE EN EL ADMIN 🔥
+    const selector = document.getElementById("selector-fecha-reserva");
+    if (!selector) return; 
+
+    const fechaElegida = selector.value;
     const textoEstado = document.getElementById("estado-fecha-texto");
     const contenedorTarjetas = document.getElementById("contenedor-tarjetas-clases");
 

@@ -163,6 +163,37 @@ def admin_login():
         return jsonify({"success": True, "message": "Acceso concedido"})
     return jsonify({"success": False, "message": "Credenciales incorrectas"}), 401
 
+# API ADMIN: Guardar nueva capacidad de cupos
+@app.route('/api/admin/guardar-cupos', methods=['POST'])
+def admin_guardar_cupos():
+    data = request.json
+    c8 = int(data.get('cupos_8', 10))
+    c9 = int(data.get('cupos_9', 10))
+    c10 = int(data.get('cupos_10', 10))
+
+    datos = cargar_datos()
+
+    # Actualizamos los cupos para todos los días registrados
+    for dia_str, dia_data in datos.get("agendaDias", {}).items():
+        if "8" in dia_data:
+            # Calculamos cuántos hay ocupados para ajustar los disponibles reales
+            ocupados = sum(1 for p in dia_data.get("personas", []) if p["hora"] == "8:00 AM")
+            dia_data["8"]["totales"] = c8
+            dia_data["8"]["disponibles"] = max(0, c8 - ocupados)
+            
+        if "9" in dia_data:
+            ocupados = sum(1 for p in dia_data.get("personas", []) if p["hora"] == "9:00 AM")
+            dia_data["9"]["totales"] = c9
+            dia_data["9"]["disponibles"] = max(0, c9 - ocupados)
+            
+        if "10" in dia_data:
+            ocupados = sum(1 for p in dia_data.get("personas", []) if p["hora"] == "10:00 AM")
+            dia_data["10"]["totales"] = c10
+            dia_data["10"]["disponibles"] = max(0, c10 - ocupados)
+
+    guardar_datos(datos)
+    return jsonify({"success": True, "message": "¡Cupos actualizados correctamente en todo el calendario!"})
+
 # API ADMIN: Habilitar o Deshabilitar Rangos de Fechas
 @app.route('/api/admin/configurar-calendario', methods=['POST'])
 def admin_configurar_calendario():
