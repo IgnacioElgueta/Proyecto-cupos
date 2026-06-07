@@ -327,3 +327,58 @@ td {
         grid-template-columns: 1fr; /* En teléfonos se pone uno abajo del otro */
     }
 }
+/* ==========================================================================
+   NUEVOS ESTILOS PARA EL PANEL EXTENDIDO (3 COLUMNAS) Y CONTROL DE RUTS
+   ========================================================================== */
+
+/* Estilos para el nuevo contenedor del Panel de Admin */
+.panel-admin {
+    background-color: #121214;
+    border-radius: 8px;
+    padding: 25px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+    border: 1px solid #29292e;
+}
+
+/* El Grid ahora se divide en 3 columnas en pantallas grandes */
+.admin-grid {
+    display: grid;
+    grid-template-columns: 1fr 1.1fr 1.9fr; /* Equilibrio perfecto para los 3 subpaneles */
+    gap: 20px;
+    align-items: start;
+}
+
+/* Scrollbar personalizado y estético para la lista de RUTs */
+#lista-ruts-contenedor::-webkit-scrollbar {
+    width: 6px;
+}
+#lista-ruts-contenedor::-webkit-scrollbar-track {
+    background: #1c1c1e;
+}
+#lista-ruts-contenedor::-webkit-scrollbar-thumb {
+    background: #3a3a3c;
+    border-radius: 3px;
+}
+#lista-ruts-contenedor::-webkit-scrollbar-thumb:hover {
+    background: #ffbc0d;
+}
+
+/* Animación suave para los botones de eliminar (las x rojas) */
+#lista-ruts-contenedor li button {
+    transition: transform 0.2s ease, color 0.2s ease;
+}
+#lista-ruts-contenedor li button:hover {
+    transform: scale(1.2);
+    color: #ff3b30 !important;
+}
+
+/* Responsivo: Si entras desde el celular, los 3 paneles se apilan uno abajo del otro */
+@media (max-width: 992px) {
+    .admin-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .panel-admin {
+        padding: 15px;
+    }
+}

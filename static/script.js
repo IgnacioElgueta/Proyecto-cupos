@@ -12,7 +12,7 @@ function cargarDatosDelServidor() {
     fetch('/api/datos')
         .then(response => response.json())
         .then(data => {
-            // Actualizar los textos de cupos en las tarjetas (sirve para alumnos y admin)
+            // Actualizar los textos de cupos en las tarjetas
             for (let hora in data.datosCupos) {
                 const cupo = data.datosCupos[hora];
                 const elementoCupo = document.getElementById(`cupos-${hora}`);
@@ -20,43 +20,45 @@ function cargarDatosDelServidor() {
                     elementoCupo.innerText = `${cupo.disponibles} / ${cupo.totales}`;
                 }
             }
-            // Actualizar la tabla de personas en el panel de administración
+            // Actualizar la tabla de asistencia en el panel de administración
             actualizarTablaAdmin(data.listaPersonas);
+            
+            // Actualizar la lista visual de RUTs autorizados en el panel
+            actualizarListaRutsDom(data.listaRuts);
         })
         .catch(error => console.error("Error al conectar con Python:", error));
 }
 
-// FUNCIÓN PARA ENVIAR EL LOGIN DEL ADMINISTRADOR A PYTHON
-function autenticarAdmin(event) {
-    event.preventDefault();
-    
-    const usuarioInput = document.getElementById("admin-usuario").value;
-    const passwordInput = document.getElementById("admin-password").value;
+// --- LÓGICA DE CONTROL DE ACCESO (ALUMNOS) ---
 
-    fetch('/api/admin/login', {
+// Nueva Función: Valida el RUT del alumno contra la lista blanca en Python
+function validarRutAcceso(event) {
+    event.preventDefault();
+    const rutInput = document.getElementById("rut-alumno").value;
+
+    fetch('/api/verificar-rut', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ usuario: usuarioInput, password: passwordInput })
+        body: JSON.stringify({ rut: rutInput })
     })
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            document.getElementById("seccion-login-admin").style.display = "none";
-            document.getElementById("panel-admin-box").style.display = "block";
-            cargarDatosDelServidor(); // Cargar la lista real de inscritos
+            // Ocultamos la pantalla de RUT y mostramos el panel de reservas
+            document.getElementById("pantalla-rut").style.display = "none";
+            document.getElementById("contenido-reserva-box").style.display = "block";
         } else {
             alert(data.message);
         }
     })
-    .catch(error => alert("Usuario o contraseña incorrectos"));
+    .catch(error => {
+        alert("El RUT ingresado no está autorizado o no figura como alumno activo.");
+    });
 }
 
-// FUNCIÓN PARA SALIR DEL PANEL SEGURO
-function cerrarSesionAdmin() {
-    window.location.href = "/";
-}
 
-// Mostrar formulario de registro de usuario (Página de alumnos)
+// --- LÓGICA DE RESERVAS Y CANCELACIONES ---
+
 function abrirFormulario(hora) {
     if (yaTieneReserva) {
         alert("Lo sentimos, ya cuentas con una reserva activa hoy.");
@@ -71,7 +73,6 @@ function abrirFormulario(hora) {
     seccionReg.scrollIntoView({ behavior: 'smooth' });
 }
 
-// 2. ENVIAR RESERVA A PYTHON
 function confirmarReserva(event) {
     event.preventDefault();
 
@@ -104,7 +105,6 @@ function confirmarReserva(event) {
     .catch(error => alert("Error al procesar la reserva"));
 }
 
-// 3. ENVIAR CANCELACIÓN A PYTHON (Desde el alumno)
 function cancelarCupoDirecto(hora) {
     if (!yaTieneReserva) {
         alert("No tienes ninguna reserva activa para cancelar.");
@@ -129,37 +129,65 @@ function cancelarCupoDirecto(hora) {
     .catch(error => alert("Error al cancelar el cupo"));
 }
 
-// DIBUJAR LA TABLA CON EL BOTÓN ELIMINAR INTEGRADO
+
+// --- LÓGICA EXCLUSIVA DEL PANEL DE ADMINISTRACIÓN ---
+
+function autenticarAdmin(event) {
+    event.preventDefault();
+    
+    const usuarioInput = document.getElementById("admin-usuario").value;
+    const passwordInput = document.getElementById("admin-password").value;
+
+    fetch('/api/admin/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ usuario: usuarioInput, password: passwordInput })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            document.getElementById("seccion-login-admin").style.display = "none";
+            document.getElementById("panel-admin-box").style.display = "block";
+            cargarDatosDelServidor(); 
+        } else {
+            alert(data.message);
+        }
+    })
+    .catch(error => alert("Usuario o contraseña incorrectos"));
+}
+
+function cerrarSesionAdmin() {
+    window.location.href = "/";
+}
+
 function actualizarTablaAdmin(listaPersonas) {
     const tbody = document.getElementById("lista-registrados");
     if (!tbody) return; 
 
     tbody.innerHTML = ""; 
 
-    if (listaPersonas.length === 0) {
-        tbody.innerHTML = `<tr id="sin-registros"><td colspan="4" style="text-align: center; color: #7c7c8a;">No hay reservas aún</td></tr>`;
+    if (!listaPersonas || listaPersonas.length === 0) {
+        tbody.innerHTML = `<tr id="sin-registros"><td colspan="4" style="text-align: center; color: #7c7c8a; padding: 15px;">No hay reservas aún</td></tr>`;
         return;
     }
 
     listaPersonas.forEach(persona => {
         const fila = document.createElement("tr");
+        fila.style.borderBottom = "1px solid #2c2c2e";
         fila.innerHTML = `
-            <td><strong>${persona.hora}</strong></td>
-            <td>${persona.nombre}</td>
-            <td>${persona.email}</td>
-            <td>
-                <button onclick="eliminarUsuarioAdmin('${persona.email}', '${persona.hora}')" style="background-color: #f74141; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 12px;">Eliminar</button>
+            <td style="padding: 8px;"><strong>${persona.hora}</strong></td>
+            <td style="padding: 8px;">${persona.nombre}</td>
+            <td style="padding: 8px;">${persona.email}</td>
+            <td style="padding: 8px; text-align: center;">
+                <button onclick="eliminarUsuarioAdmin('${persona.email}', '${persona.hora}')" style="background-color: #f74141; color: white; border: none; padding: 4px 10px; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: bold;">Eliminar</button>
             </td>
         `;
         tbody.appendChild(fila);
     });
 }
 
-// FUNCIÓN NUEVA: El administrador elimina un usuario y libera el cupo
 function eliminarUsuarioAdmin(email, hora) {
-    if (!confirm(`¿Estás seguro de que quieres eliminar a este usuario de la clase de las ${hora}? Se liberará su cupo.`)) {
-        return;
-    }
+    if (!confirm(`¿Estás seguro de eliminar a este usuario de las ${hora}?`)) return;
 
     fetch('/api/admin/eliminar-usuario', {
         method: 'POST',
@@ -170,15 +198,14 @@ function eliminarUsuarioAdmin(email, hora) {
     .then(data => {
         if (data.success) {
             alert(data.message);
-            cargarDatosDelServidor(); // Volver a pintar la tabla y cupos actualizados
+            cargarDatosDelServidor(); 
         } else {
             alert(data.message);
         }
     })
-    .catch(error => alert("Error al intentar eliminar al usuario."));
+    .catch(error => alert("Error al eliminar al usuario."));
 }
 
-// ADMINISTRADOR ENVÍA LOS NUEVOS TOTALES A PYTHON
 function actualizarAdmin() {
     const nuevosTotales = {
         "8": parseInt(document.getElementById("input-cupos-8").value) || 0,
@@ -198,5 +225,82 @@ function actualizarAdmin() {
             cargarDatosDelServidor(); 
         }
     })
-    .catch(error => alert("Error al actualizar la configuración"));
+    .catch(error => alert("Error al actualizar los cupos"));
+}
+
+// Nueva Función: Permite al admin añadir un RUT a la lista blanca
+function agregarRutAdmin() {
+    const inputRut = document.getElementById("input-nuevo-rut");
+    const nuevoRut = inputRut.value.trim();
+
+    if (!nuevoRut) {
+        alert("Escribe un RUT antes de añadir.");
+        return;
+    }
+
+    fetch('/api/admin/agregar-rut', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ rut: nuevoRut })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(data.message);
+            inputRut.value = ""; // Limpiar input
+            cargarDatosDelServidor(); // Recargar lista
+        } else {
+            alert(data.message);
+        }
+    })
+    .catch(error => alert("Error al guardar el RUT."));
+}
+
+// Nueva Función: Permite al admin remover un RUT de la lista blanca
+function eliminarRutAdmin(rut) {
+    if (!confirm(`¿Remover el RUT ${rut} de los alumnos autorizados?`)) return;
+
+    fetch('/api/admin/eliminar-rut', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ rut: rut })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(data.message);
+            cargarDatosDelServidor(); 
+        }
+    })
+    .catch(error => alert("Error al intentar eliminar el RUT."));
+}
+
+// Nueva Función: Dibuja la lista de RUTs dinámicamente en el panel
+function actualizarListaRutsDom(listaRuts) {
+    const contenedor = document.getElementById("lista-ruts-contenedor");
+    if (!contenedor) return; 
+
+    contenedor.innerHTML = "";
+
+    if (!listaRuts || listaRuts.length === 0) {
+        contenedor.innerHTML = `<li style="text-align: center; color: #7c7c8a; padding: 15px; font-size: 13px;">No hay RUTs autorizados</li>`;
+        return;
+    }
+
+    listaRuts.forEach(rut => {
+        const item = document.createElement("li");
+        item.style.display = "flex";
+        item.style.justify = "space-between";
+        item.style.alignItems = "center";
+        item.style.padding = "8px 10px";
+        item.style.borderBottom = "1px solid #3a3a3c";
+        item.style.color = "#ffffff";
+        item.style.fontSize = "14px";
+        
+        item.innerHTML = `
+            <span>${rut}</span>
+            <button onclick="eliminarRutAdmin('${rut}')" style="background: none; border: none; color: #f74141; cursor: pointer; font-size: 12px; font-weight: bold;">❌</button>
+        `;
+        contenedor.appendChild(item);
+    });
 }
