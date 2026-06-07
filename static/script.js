@@ -26,7 +26,7 @@ function cargarDatosDelServidor() {
         .catch(error => console.error("Error al conectar con Python:", error));
 }
 
-// PASO 4: FUNCIÓN PARA ENVIAR EL LOGIN DEL ADMINISTRADOR A PYTHON
+// FUNCIÓN PARA ENVIAR EL LOGIN DEL ADMINISTRADOR A PYTHON
 function autenticarAdmin(event) {
     event.preventDefault();
     
@@ -41,7 +41,6 @@ function autenticarAdmin(event) {
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            // Ocultamos el bloque de login de la página secreta y mostramos el panel real
             document.getElementById("seccion-login-admin").style.display = "none";
             document.getElementById("panel-admin-box").style.display = "block";
             cargarDatosDelServidor(); // Cargar la lista real de inscritos
@@ -52,9 +51,8 @@ function autenticarAdmin(event) {
     .catch(error => alert("Usuario o contraseña incorrectos"));
 }
 
-// PASO 4: FUNCIÓN PARA SALIR DEL PANEL SEGURO
+// FUNCIÓN PARA SALIR DEL PANEL SEGURO
 function cerrarSesionAdmin() {
-    // Redirecciona al administrador de vuelta a la página principal de los alumnos
     window.location.href = "/";
 }
 
@@ -95,11 +93,10 @@ function confirmarReserva(event) {
             alert(data.message);
             yaTieneReserva = true;
             
-            // Limpiar y ocultar formulario
             document.getElementById("form-registro").reset();
             document.getElementById("seccion-registro").style.display = "none";
             
-            cargarDatosDelServidor(); // Recargar datos
+            cargarDatosDelServidor(); 
         } else {
             alert(data.message);
         }
@@ -107,7 +104,7 @@ function confirmarReserva(event) {
     .catch(error => alert("Error al procesar la reserva"));
 }
 
-// 3. ENVIAR CANCELACIÓN A PYTHON
+// 3. ENVIAR CANCELACIÓN A PYTHON (Desde el alumno)
 function cancelarCupoDirecto(hora) {
     if (!yaTieneReserva) {
         alert("No tienes ninguna reserva activa para cancelar.");
@@ -124,7 +121,7 @@ function cancelarCupoDirecto(hora) {
         if (data.success) {
             alert(data.message);
             yaTieneReserva = false;
-            cargarDatosDelServidor(); // Refrescar pantalla
+            cargarDatosDelServidor(); 
         } else {
             alert(data.message);
         }
@@ -132,16 +129,15 @@ function cancelarCupoDirecto(hora) {
     .catch(error => alert("Error al cancelar el cupo"));
 }
 
-// PASO 4: DIBUJAR LA TABLA (Protegida si estamos en la vista de alumnos)
+// DIBUJAR LA TABLA CON EL BOTÓN ELIMINAR INTEGRADO
 function actualizarTablaAdmin(listaPersonas) {
     const tbody = document.getElementById("lista-registrados");
-    // Si el elemento no existe (porque el alumno está en index.html), salimos sin hacer nada
     if (!tbody) return; 
 
     tbody.innerHTML = ""; 
 
     if (listaPersonas.length === 0) {
-        tbody.innerHTML = `<tr id="sin-registros"><td colspan="3" style="text-align: center; color: #7c7c8a;">No hay reservas aún</td></tr>`;
+        tbody.innerHTML = `<tr id="sin-registros"><td colspan="4" style="text-align: center; color: #7c7c8a;">No hay reservas aún</td></tr>`;
         return;
     }
 
@@ -151,12 +147,38 @@ function actualizarTablaAdmin(listaPersonas) {
             <td><strong>${persona.hora}</strong></td>
             <td>${persona.nombre}</td>
             <td>${persona.email}</td>
+            <td>
+                <button onclick="eliminarUsuarioAdmin('${persona.email}', '${persona.hora}')" style="background-color: #f74141; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 12px;">Eliminar</button>
+            </td>
         `;
         tbody.appendChild(fila);
     });
 }
 
-// 4. ADMINISTRADOR ENVÍA LOS NUEVOS TOTALES A PYTHON
+// FUNCIÓN NUEVA: El administrador elimina un usuario y libera el cupo
+function eliminarUsuarioAdmin(email, hora) {
+    if (!confirm(`¿Estás seguro de que quieres eliminar a este usuario de la clase de las ${hora}? Se liberará su cupo.`)) {
+        return;
+    }
+
+    fetch('/api/admin/eliminar-usuario', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email, hora: hora })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(data.message);
+            cargarDatosDelServidor(); // Volver a pintar la tabla y cupos actualizados
+        } else {
+            alert(data.message);
+        }
+    })
+    .catch(error => alert("Error al intentar eliminar al usuario."));
+}
+
+// ADMINISTRADOR ENVÍA LOS NUEVOS TOTALES A PYTHON
 function actualizarAdmin() {
     const nuevosTotales = {
         "8": parseInt(document.getElementById("input-cupos-8").value) || 0,
@@ -173,7 +195,7 @@ function actualizarAdmin() {
     .then(data => {
         if (data.success) {
             alert(data.message);
-            cargarDatosDelServidor(); // Refrescar totales arriba
+            cargarDatosDelServidor(); 
         }
     })
     .catch(error => alert("Error al actualizar la configuración"));

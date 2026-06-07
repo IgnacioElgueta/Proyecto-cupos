@@ -306,3 +306,24 @@ td {
     color: #e1e1e6;
     border-bottom: 1px solid #1a1a1e;
 }
+/* Estilos nuevos para la columna de acciones en la tabla del Admin */
+.tabla-contenedor table td button {
+    transition: background 0.2s ease;
+}
+
+.tabla-contenedor table td button:hover {
+    background-color: #c53030 !important; /* Se pone un rojo más oscuro al pasar el mouse */
+}
+
+/* Ajuste para que la tabla no se vea apretada con el nuevo botón */
+.admin-grid {
+    display: grid;
+    grid-template-columns: 1fr 2fr; /* Le da más espacio a la tabla que a los inputs */
+    gap: 20px;
+}
+
+@media (max-width: 768px) {
+    .admin-grid {
+        grid-template-columns: 1fr; /* En teléfonos se pone uno abajo del otro */
+    }
+}
