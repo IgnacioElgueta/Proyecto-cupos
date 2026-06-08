@@ -1,3 +1,4 @@
+import os
 from flask import Flask, render_template, jsonify, request
 from datetime import datetime, timedelta
 from pymongo import MongoClient
