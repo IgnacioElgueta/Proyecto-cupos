@@ -9,7 +9,7 @@ import threading  # 👈 NUEVO: Herramienta para enviar correos en segundo plano
 app = Flask(__name__)
 
 # --- CONFIGURACIÓN DE GMAIL ---
-EMAIL_REMITENTE = "Gimnasiopgw@gmail.com"
+EMAIL_REMITENTE = "gimnasiopgw@gmail.com"
 PASSWORD_APP = "tiwzqmsljtydvrbh"                   
 
 MONGO_URI = "mongodb+srv://Cupos_prog:Entrenamiento34@cluster0.vyxg5ux.mongodb.net/?appName=Cluster0"
