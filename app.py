@@ -290,5 +290,6 @@ def admin_eliminar_rut():
     return jsonify({"success": False, "message": "No encontrado."}), 404
 
 if __name__ == '__main__':
-    app.run(debug=True)
-    
+    import os
+    puerto = int(os.environ.get("PORT", 5000))
+    app.run(host='0.0.0.0', port=puerto, debug=False)
