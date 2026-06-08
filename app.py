@@ -61,14 +61,13 @@ def guardar_datos(datos):
     coleccion.update_one({"_id": "configuracion_box"}, {"$set": datos}, upsert=True)
 
 def enviar_correo_confirmacion(email_destino, nombre, fecha, hora):
-    """Envía un correo automático de confirmación al alumno."""
+    """Envía un correo automático de confirmación al alumno (Optimizado para servidores web)."""
     try:
         msg = MIMEMultipart()
         msg['From'] = EMAIL_REMITENTE
         msg['To'] = email_destino
         msg['Subject'] = "¡Reserva Confirmada en el Box!"
 
-        # El mensaje que recibirá el alumno
         cuerpo = f"""Hola {nombre},
         
 Tu reserva ha sido confirmada con éxito.
@@ -79,9 +78,8 @@ Tu reserva ha sido confirmada con éxito.
 """
         msg.attach(MIMEText(cuerpo, 'plain'))
 
-        # Conexión con los servidores de Google
-        server = smtplib.SMTP('smtp.gmail.com', 587)
-        server.starttls()
+        # 🔒 Cambiamos a SMTP_SSL y puerto 465 para que los servidores públicos no lo bloqueen
+        server = smtplib.SMTP_SSL('smtp.gmail.com', 465)
         server.login(EMAIL_REMITENTE, PASSWORD_APP)
         server.send_message(msg)
         server.quit()
@@ -335,4 +333,3 @@ if __name__ == '__main__':
     import os
     puerto = int(os.environ.get("PORT", 5000))
     app.run(host='0.0.0.0', port=puerto, debug=False)
-    
