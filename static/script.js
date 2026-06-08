@@ -191,7 +191,11 @@ function cancelarCupoDirecto(hora) {
     fetch('/api/cancelar', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ fecha: fechaElegida, hora: hora })
+        body: JSON.stringify({ 
+            fecha: fechaElegida, 
+            hora: hora,
+            rut: rutUsuarioConectado // 👈 AQUÍ ENVIAMOS EL RUT AL SERVIDOR PARA VALIDAR LA IDENTIDAD
+        })
     })
     .then(response => response.json())
     .then(data => {

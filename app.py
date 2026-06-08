@@ -135,6 +135,7 @@ def cancelar():
     data = request.json
     fecha = str(data.get('fecha'))
     hora = str(data.get('hora'))
+    rut_solicitante = str(data.get('rut', '')).strip().lower() # Capturamos quién solicita cancelar
     texto_hora = f"{hora}:00 AM"
     
     datos = cargar_datos()
@@ -145,17 +146,22 @@ def cancelar():
     
     eliminado = False
     for i, persona in enumerate(dia_actual.get("personas", [])):
+        # Buscamos la reserva en esa hora específica
         if persona["hora"] == texto_hora:
-            dia_actual["personas"].pop(i)
-            eliminado = True
-            break
+            # Validamos si el RUT del que está intentando borrar coincide con el guardado
+            if persona.get("rut") == rut_solicitante:
+                dia_actual["personas"].pop(i)
+                eliminado = True
+                break
+            else:
+                return jsonify({"success": False, "message": "No puedes cancelar una reserva que no te pertenece."}), 403
             
     if eliminado and hora in dia_actual and dia_actual[hora]["disponibles"] < dia_actual[hora]["totales"]:
         dia_actual[hora]["disponibles"] += 1
         guardar_datos(datos)
-        return jsonify({"success": True, "message": "Cupo liberado con éxito."})
+        return jsonify({"success": True, "message": "Tu cupo ha sido liberado con éxito."})
         
-    return jsonify({"success": False, "message": "No tienes reservas que cancelar en este horario."}), 400
+    return jsonify({"success": False, "message": "No tienes reservas registradas en este horario para cancelar."}), 400
 
 
 # --- ENDPOINTS DEL ADMINISTRADOR ---
