@@ -1,6 +1,7 @@
 // Variables de control de la sesión global
 let datosGlobales = null;
 let yaTieneReserva = false;
+let rutUsuarioConectado = ""; // 👈 NUEVO: Recordará el RUT del alumno conectado
 
 // Al cargar la página, inicializamos las fechas del sistema
 document.addEventListener("DOMContentLoaded", () => {
@@ -62,6 +63,9 @@ function validarRutAcceso(event) {
     .then(response => response.json())
     .then(data => {
         if (data.success) {
+            // 👈 NUEVO: Guardamos el RUT al ingresar con éxito
+            rutUsuarioConectado = rutInput; 
+
             document.getElementById("pantalla-rut").style.display = "none";
             document.getElementById("contenido-reserva-box").style.display = "block";
             actualizarInterfazHorariosAlumno();
@@ -162,7 +166,8 @@ function confirmarReserva(event) {
             fecha: fechaElegida,
             hora: horaEnProceso,
             nombre: nombreInput,
-            email: emailInput
+            email: emailInput,
+            rut: rutUsuarioConectado // 👈 NUEVO: Enviamos el RUT guardado al servidor
         })
     })
     .then(response => response.json())

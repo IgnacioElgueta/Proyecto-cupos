@@ -96,6 +96,7 @@ def reservar():
     hora = str(data.get('hora'))   
     nombre = data.get('nombre')
     email = str(data.get('email')).strip().lower()
+    rut = str(data.get('rut', '')).strip().lower() # 👈 NUEVO: Capturamos el RUT
     
     datos = cargar_datos()
     
@@ -105,9 +106,9 @@ def reservar():
         
     dia_actual = datos["agendaDias"][fecha]
     
-    # 🔥 ESCUDO ANTITRAMPAS: Verificar si este correo ya reservó para ESTE MISMO DÍA
+    # 🔥 ESCUDO ANTITRAMPAS MEJORADO: Verificar si este correo O RUT ya reservó para ESTE MISMO DÍA
     for persona in dia_actual.get("personas", []):
-        if persona["email"] == email:
+        if persona.get("email") == email or (rut != "" and persona.get("rut") == rut):
             return jsonify({
                 "success": False, 
                 "message": f"Ya tienes una reserva registrada para este día en el horario de las {persona['hora']}. Solo se permite 1 cupo diario."
@@ -119,7 +120,8 @@ def reservar():
         dia_actual["personas"].append({
             "hora": f"{hora}:00 AM",
             "nombre": nombre,
-            "email": email
+            "email": email,
+            "rut": rut # 👈 NUEVO: Guardamos el RUT amarrado a la persona
         })
         
         guardar_datos(datos)
@@ -283,3 +285,4 @@ def admin_eliminar_rut():
 
 if __name__ == '__main__':
     app.run(debug=True)
+    
