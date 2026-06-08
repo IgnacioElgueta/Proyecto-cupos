@@ -1,8 +1,15 @@
 from flask import Flask, render_template, jsonify, request
 from datetime import datetime, timedelta
 from pymongo import MongoClient
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 
 app = Flask(__name__)
+
+# --- CONFIGURACIÓN DE GMAIL ---
+EMAIL_REMITENTE = "Gimnasiopgw@gmail.com"
+PASSWORD_APP = "tiwzqmsljtydvrbh"                   
 
 MONGO_URI = "mongodb+srv://Cupos_prog:Entrenamiento34@cluster0.vyxg5ux.mongodb.net/?appName=Cluster0"
 
@@ -52,6 +59,35 @@ def guardar_datos(datos):
     """Guarda los datos actuales en MongoDB de forma permanente."""
     coleccion.update_one({"_id": "configuracion_box"}, {"$set": datos}, upsert=True)
 
+def enviar_correo_confirmacion(email_destino, nombre, fecha, hora):
+    """Envía un correo automático de confirmación al alumno."""
+    try:
+        msg = MIMEMultipart()
+        msg['From'] = EMAIL_REMITENTE
+        msg['To'] = email_destino
+        msg['Subject'] = "¡Reserva Confirmada en el Box!"
+
+        # El mensaje que recibirá el alumno
+        cuerpo = f"""Hola {nombre},
+        
+Tu reserva ha sido confirmada con éxito.
+📅 Fecha: {fecha}
+⏰ Hora: {hora}:00 AM
+        
+¡Prepárate con todo para el entrenamiento! Nos vemos en el Box.
+"""
+        msg.attach(MIMEText(cuerpo, 'plain'))
+
+        # Conexión con los servidores de Google
+        server = smtplib.SMTP('smtp.gmail.com', 587)
+        server.starttls()
+        server.login(EMAIL_REMITENTE, PASSWORD_APP)
+        server.send_message(msg)
+        server.quit()
+        print(f"Correo enviado exitosamente a {email_destino}")
+        
+    except Exception as e:
+        print(f"Error al intentar enviar el correo: {e}")
 
 # --- RUTAS DE NAVEGACIÓN (PÁGINAS) ---
 
@@ -125,6 +161,10 @@ def reservar():
         })
         
         guardar_datos(datos)
+        
+        # 🔥 NUEVO: Enviar correo automáticamente
+        enviar_correo_confirmacion(email, nombre, fecha, hora)
+        
         return jsonify({"success": True, "message": f"¡Reserva confirmada para el {fecha} a las {hora}:00 AM!"})
     
     return jsonify({"success": False, "message": "No quedan cupos disponibles para este horario."}), 400
