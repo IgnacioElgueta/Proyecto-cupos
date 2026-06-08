@@ -4,6 +4,7 @@ from pymongo import MongoClient
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
+import threading  # 👈 NUEVO: Herramienta para enviar correos en segundo plano
 
 app = Flask(__name__)
 
@@ -162,8 +163,9 @@ def reservar():
         
         guardar_datos(datos)
         
-        # 🔥 NUEVO: Enviar correo automáticamente
-        enviar_correo_confirmacion(email, nombre, fecha, hora)
+        # 🔥 NUEVO: Enviar correo automáticamente en SEGUNDO PLANO (súper rápido)
+        hilo_correo = threading.Thread(target=enviar_correo_confirmacion, args=(email, nombre, fecha, hora))
+        hilo_correo.start()
         
         return jsonify({"success": True, "message": f"¡Reserva confirmada para el {fecha} a las {hora}:00 AM!"})
     
@@ -333,3 +335,4 @@ if __name__ == '__main__':
     import os
     puerto = int(os.environ.get("PORT", 5000))
     app.run(host='0.0.0.0', port=puerto, debug=False)
+    
