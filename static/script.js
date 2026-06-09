@@ -1,7 +1,6 @@
 // Variables de control de la sesión global
 let datosGlobales = null;
-let yaTieneReserva = false;
-let rutUsuarioConectado = ""; // 👈 NUEVO: Recordará el RUT del alumno conectado
+let rutUsuarioConectado = ""; // Recordará el RUT del alumno conectado
 
 // Al cargar la página, inicializamos las fechas del sistema
 document.addEventListener("DOMContentLoaded", () => {
@@ -42,7 +41,7 @@ function cargarDatosDelServidor() {
             // Refrescar la tabla de asistencia del Administrador según su fecha elegida
             actualizarTablaAdminAsistencia();
 
-            // 🔥 NUEVO: Actualizar las cajitas de los cupos con la info real
+            // Actualizar las cajitas de los cupos con la info real
             actualizarInputsCuposAdmin();
         })
         .catch(error => console.error("Error al conectar con Python:", error));
@@ -63,7 +62,7 @@ function validarRutAcceso(event) {
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            // 👈 NUEVO: Guardamos el RUT al ingresar con éxito
+            // Guardamos el RUT al ingresar con éxito
             rutUsuarioConectado = rutInput; 
 
             document.getElementById("pantalla-rut").style.display = "none";
@@ -86,7 +85,6 @@ function cambiarFechaAgenda() {
 function actualizarInterfazHorariosAlumno() {
     if (!datosGlobales) return;
 
-    // 🔥 ESTE ES EL SEGURO QUE AGREGAMOS PARA QUE NO FALLE EN EL ADMIN 🔥
     const selector = document.getElementById("selector-fecha-reserva");
     if (!selector) return; 
 
@@ -98,6 +96,9 @@ function actualizarInterfazHorariosAlumno() {
 
     // Verificar si el dueño tiene habilitada esta fecha específica
     const estaHabilitada = datosGlobales.fechasHabilitadas.includes(fechaElegida);
+    
+    // NUEVO: Arreglo con los nuevos horarios base
+    const horas = ["7:00", "8:15", "9:30", "11:00", "14:30"];
 
     if (estaHabilitada && datosGlobales.agendaDias[fechaElegida]) {
         // ACTIVAR INTERFAZ
@@ -108,7 +109,6 @@ function actualizarInterfazHorariosAlumno() {
 
         // Pintar los cupos dinámicos del día seleccionado
         const diaData = datosGlobales.agendaDias[fechaElegida];
-        const horas = ["8", "9", "10"];
         horas.forEach(h => {
             const el = document.getElementById(`cupos-${h}`);
             if (el && diaData[h]) {
@@ -123,7 +123,7 @@ function actualizarInterfazHorariosAlumno() {
         contenedorTarjetas.style.pointerEvents = "none";
         
         // Resetear visualmente a texto vacío/completo
-        ["8", "9", "10"].forEach(h => {
+        horas.forEach(h => {
             const el = document.getElementById(`cupos-${h}`);
             if (el) el.innerText = "10 / 10";
         });
@@ -136,16 +136,13 @@ function actualizarInterfazHorariosAlumno() {
 let horaEnProceso = null;
 
 function abrirFormulario(hora) {
-    if (yaTieneReserva) {
-        alert("Ya cuentas con una reserva realizada en tu sesión.");
-        return;
-    }
+    // ELIMINADO: El bloqueo local "yaTieneReserva" que no dejaba agendar en otros días
     
     const fechaElegida = document.getElementById("selector-fecha-reserva").value;
     horaEnProceso = hora;
     
     document.getElementById("fecha-seleccionada-texto").innerText = fechaElegida;
-    document.getElementById("hora-seleccionada").innerText = `${hora}:00 AM`;
+    document.getElementById("hora-seleccionada").innerText = hora; // Ya no agregamos "AM" extra aquí, el HTML ya lo trae
     
     const seccionReg = document.getElementById("seccion-registro");
     seccionReg.style.display = "block";
@@ -167,14 +164,13 @@ function confirmarReserva(event) {
             hora: horaEnProceso,
             nombre: nombreInput,
             email: emailInput,
-            rut: rutUsuarioConectado // 👈 NUEVO: Enviamos el RUT guardado al servidor
+            rut: rutUsuarioConectado // Enviamos el RUT guardado al servidor
         })
     })
     .then(response => response.json())
     .then(data => {
         if (data.success) {
             alert(data.message);
-            yaTieneReserva = true; // Control local
             document.getElementById("form-registro").reset();
             document.getElementById("seccion-registro").style.display = "none";
             cargarDatosDelServidor(); // Recargar base completa
@@ -194,14 +190,13 @@ function cancelarCupoDirecto(hora) {
         body: JSON.stringify({ 
             fecha: fechaElegida, 
             hora: hora,
-            rut: rutUsuarioConectado // 👈 AQUÍ ENVIAMOS EL RUT AL SERVIDOR PARA VALIDAR LA IDENTIDAD
+            rut: rutUsuarioConectado // AQUÍ ENVIAMOS EL RUT AL SERVIDOR PARA VALIDAR LA IDENTIDAD
         })
     })
     .then(response => response.json())
     .then(data => {
         if (data.success) {
             alert(data.message);
-            yaTieneReserva = false;
             cargarDatosDelServidor();
         } else {
             alert(data.message);
@@ -329,19 +324,32 @@ function configurarCalendarioAdmin(accion) {
 
 function agregarRutAdmin() {
     const inputRut = document.getElementById("input-nuevo-rut");
-    const nuevoRut = inputRut.value.trim();
+    const inputNombre = document.getElementById("input-nuevo-nombre");
+    const inputEmail = document.getElementById("input-nuevo-email");
+    
+    // NUEVO: Capturar todos los campos si existen (para compatibilidad con el admin.html antiguo si aún no se actualiza)
+    const nuevoRut = inputRut ? inputRut.value.trim() : "";
+    const nuevoNombre = inputNombre ? inputNombre.value.trim() : "";
+    const nuevoEmail = inputEmail ? inputEmail.value.trim() : "";
+
     if (!nuevoRut) return;
 
     fetch('/api/admin/agregar-rut', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ rut: nuevoRut })
+        body: JSON.stringify({ 
+            rut: nuevoRut,
+            nombre: nuevoNombre,
+            email: nuevoEmail
+        })
     })
     .then(response => response.json())
     .then(data => {
         if (data.success) {
             alert(data.message);
-            inputRut.value = "";
+            if(inputRut) inputRut.value = "";
+            if(inputNombre) inputNombre.value = "";
+            if(inputEmail) inputEmail.value = "";
             cargarDatosDelServidor();
         } else {
             alert(data.message);
@@ -376,37 +384,49 @@ function actualizarListaRutsDom(listaRuts) {
         return;
     }
 
-    listaRuts.forEach(rut => {
-        const item = document.createElement("li");
-        item.style.display = "flex";
-        item.style.justifyContent = "space-between";
-        item.style.alignItems = "center";
-        item.style.padding = "8px 10px";
-        item.style.borderBottom = "1px solid #3a3a3c";
-        item.style.color = "white";
-        item.style.fontSize = "14px";
+    // NUEVO: Adaptación para mostrar RUTs antiguos (strings) y nuevos (diccionarios con nombre)
+    listaRuts.forEach(item => {
+        const rutStr = typeof item === 'object' ? item.rut : item;
+        const nombreStr = (typeof item === 'object' && item.nombre) ? `<br><small style="color: #a1a1aa;">${item.nombre}</small>` : "";
+
+        const li = document.createElement("li");
+        li.style.display = "flex";
+        li.style.justifyContent = "space-between";
+        li.style.alignItems = "center";
+        li.style.padding = "8px 10px";
+        li.style.borderBottom = "1px solid #3a3a3c";
+        li.style.color = "white";
+        li.style.fontSize = "14px";
         
-        item.innerHTML = `
-            <span>${rut}</span>
-            <button onclick="eliminarRutAdmin('${rut}')" style="background: none; border: none; color: #ef4444; cursor: pointer; font-size: 14px; font-weight: bold; padding: 0 5px;">✕</button>
+        li.innerHTML = `
+            <div>
+                <strong>${rutStr}</strong>
+                ${nombreStr}
+            </div>
+            <button onclick="eliminarRutAdmin('${rutStr}')" style="background: none; border: none; color: #ef4444; cursor: pointer; font-size: 14px; font-weight: bold; padding: 0 5px;">✕</button>
         `;
-        contenedor.appendChild(item);
+        contenedor.appendChild(li);
     });
 }
 
 // --- NUEVA FUNCIÓN: ENVIAR LOS CUPOS CONFIGURADOS A PYTHON ---
 function guardarCuposEstandarAdmin() {
-    const cupos8 = document.getElementById("input-cupos-8").value;
-    const cupos9 = document.getElementById("input-cupos-9").value;
-    const cupos10 = document.getElementById("input-cupos-10").value;
+    // NUEVO: Adaptado para capturar los nuevos horarios desde el admin.html
+    const cupos7_00 = document.getElementById("input-cupos-7_00") ? document.getElementById("input-cupos-7_00").value : 10;
+    const cupos8_15 = document.getElementById("input-cupos-8_15") ? document.getElementById("input-cupos-8_15").value : 10;
+    const cupos9_30 = document.getElementById("input-cupos-9_30") ? document.getElementById("input-cupos-9_30").value : 10;
+    const cupos11_00 = document.getElementById("input-cupos-11_00") ? document.getElementById("input-cupos-11_00").value : 10;
+    const cupos14_30 = document.getElementById("input-cupos-14_30") ? document.getElementById("input-cupos-14_30").value : 10;
 
     fetch('/api/admin/guardar-cupos', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-            cupos_8: parseInt(cupos8) || 10,
-            cupos_9: parseInt(cupos9) || 10,
-            cupos_10: parseInt(cupos10) || 10
+            cupos_7_00: parseInt(cupos7_00) || 10,
+            cupos_8_15: parseInt(cupos8_15) || 10,
+            cupos_9_30: parseInt(cupos9_30) || 10,
+            cupos_11_00: parseInt(cupos11_00) || 10,
+            cupos_14_30: parseInt(cupos14_30) || 10
         })
     })
     .then(response => response.json())
@@ -432,13 +452,17 @@ function actualizarInputsCuposAdmin() {
         // Tomamos cualquier día de referencia para leer la configuración actual
         const diaDeReferencia = datosGlobales.agendaDias[diasGuardados[0]];
 
-        const input8 = document.getElementById("input-cupos-8");
-        const input9 = document.getElementById("input-cupos-9");
-        const input10 = document.getElementById("input-cupos-10");
+        const in7_00 = document.getElementById("input-cupos-7_00");
+        const in8_15 = document.getElementById("input-cupos-8_15");
+        const in9_30 = document.getElementById("input-cupos-9_30");
+        const in11_00 = document.getElementById("input-cupos-11_00");
+        const in14_30 = document.getElementById("input-cupos-14_30");
 
         // Si existen los inputs, les ponemos el número real de la base de datos
-        if (input8 && diaDeReferencia["8"]) input8.value = diaDeReferencia["8"].totales;
-        if (input9 && diaDeReferencia["9"]) input9.value = diaDeReferencia["9"].totales;
-        if (input10 && diaDeReferencia["10"]) input10.value = diaDeReferencia["10"].totales;
+        if (in7_00 && diaDeReferencia["7:00"]) in7_00.value = diaDeReferencia["7:00"].totales;
+        if (in8_15 && diaDeReferencia["8:15"]) in8_15.value = diaDeReferencia["8:15"].totales;
+        if (in9_30 && diaDeReferencia["9:30"]) in9_30.value = diaDeReferencia["9:30"].totales;
+        if (in11_00 && diaDeReferencia["11:00"]) in11_00.value = diaDeReferencia["11:00"].totales;
+        if (in14_30 && diaDeReferencia["14:30"]) in14_30.value = diaDeReferencia["14:30"].totales;
     }
 }

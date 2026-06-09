@@ -41,32 +41,52 @@
         <div id="contenedor-tarjetas-clases" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; opacity: 0.5; pointer-events: none;">
             
             <div class="tarjeta-horario">
-                <div class="hora">08:00 AM</div>
+                <div class="hora">07:00 AM</div>
                 <div class="clase">Entrenamiento</div>
-                <div class="cupos">Cupos disponibles: <span id="cupos-8">10 / 10</span></div>
+                <div class="cupos">Cupos disponibles: <span id="cupos-7:00">10 / 10</span></div>
                 <div class="acciones">
-                    <button class="btn btn-reservar" onclick="abrirFormulario(8)">Reservar Cupo</button>
-                    <button class="btn btn-cancelar" onclick="cancelarCupoDirecto(8)">Cancelar Cupo</button>
+                    <button class="btn btn-reservar" onclick="abrirFormulario('7:00 AM')">Reservar Cupo</button>
+                    <button class="btn btn-cancelar" onclick="cancelarCupoDirecto('7:00 AM')">Cancelar Cupo</button>
                 </div>
             </div>
 
             <div class="tarjeta-horario">
-                <div class="hora">09:00 AM</div>
+                <div class="hora">08:15 AM</div>
                 <div class="clase">Entrenamiento</div>
-                <div class="cupos">Cupos disponibles: <span id="cupos-9">10 / 10</span></div>
+                <div class="cupos">Cupos disponibles: <span id="cupos-8:15">10 / 10</span></div>
                 <div class="acciones">
-                    <button class="btn btn-reservar" onclick="abrirFormulario(9)">Reservar Cupo</button>
-                    <button class="btn btn-cancelar" onclick="cancelarCupoDirecto(9)">Cancelar Cupo</button>
+                    <button class="btn btn-reservar" onclick="abrirFormulario('8:15 AM')">Reservar Cupo</button>
+                    <button class="btn btn-cancelar" onclick="cancelarCupoDirecto('8:15 AM')">Cancelar Cupo</button>
                 </div>
             </div>
 
             <div class="tarjeta-horario">
-                <div class="hora">10:00 AM</div>
+                <div class="hora">09:30 AM</div>
                 <div class="clase">Entrenamiento</div>
-                <div class="cupos">Cupos disponibles: <span id="cupos-10">10 / 10</span></div>
+                <div class="cupos">Cupos disponibles: <span id="cupos-9:30">10 / 10</span></div>
                 <div class="acciones">
-                    <button class="btn btn-reservar" onclick="abrirFormulario(10)">Reservar Cupo</button>
-                    <button class="btn btn-cancelar" onclick="cancelarCupoDirecto(10)">Cancelar Cupo</button>
+                    <button class="btn btn-reservar" onclick="abrirFormulario('9:30 AM')">Reservar Cupo</button>
+                    <button class="btn btn-cancelar" onclick="cancelarCupoDirecto('9:30 AM')">Cancelar Cupo</button>
+                </div>
+            </div>
+
+            <div class="tarjeta-horario">
+                <div class="hora">11:00 AM</div>
+                <div class="clase" style="color: #22c55e;">Entrenamiento Adulto Mayor</div>
+                <div class="cupos">Cupos disponibles: <span id="cupos-11:00">10 / 10</span></div>
+                <div class="acciones">
+                    <button class="btn btn-reservar" onclick="abrirFormulario('11:00 AM')">Reservar Cupo</button>
+                    <button class="btn btn-cancelar" onclick="cancelarCupoDirecto('11:00 AM')">Cancelar Cupo</button>
+                </div>
+            </div>
+
+            <div class="tarjeta-horario">
+                <div class="hora">14:30 PM</div>
+                <div class="clase">Entrenamiento</div>
+                <div class="cupos">Cupos disponibles: <span id="cupos-14:30">10 / 10</span></div>
+                <div class="acciones">
+                    <button class="btn btn-reservar" onclick="abrirFormulario('14:30 PM')">Reservar Cupo</button>
+                    <button class="btn btn-cancelar" onclick="cancelarCupoDirecto('14:30 PM')">Cancelar Cupo</button>
                 </div>
             </div>
 

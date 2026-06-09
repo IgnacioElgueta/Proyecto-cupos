@@ -34,10 +34,13 @@ def cargar_datos():
         for i in range(14):
             dia_str = (hoy + timedelta(days=i)).strftime("%Y-%m-%d")
             fechas.append(dia_str)
+            # NUEVO: Generando los nuevos horarios base para días nuevos
             agenda[dia_str] = {
-                "8": {"disponibles": 10, "totales": 10},
-                "9": {"disponibles": 10, "totales": 10},
-                "10": {"disponibles": 10, "totales": 10},
+                "7:00": {"disponibles": 10, "totales": 10},
+                "8:15": {"disponibles": 10, "totales": 10},
+                "9:30": {"disponibles": 10, "totales": 10},
+                "11:00": {"disponibles": 10, "totales": 10},
+                "14:30": {"disponibles": 10, "totales": 10},
                 "personas": []
             }
         datos_nuevos = {
@@ -54,7 +57,7 @@ def guardar_datos(datos):
     coleccion.update_one({"_id": "configuracion_box"}, {"$set": datos}, upsert=True)
 
 def enviar_correo_confirmacion(email_destino, nombre, fecha, hora):
-    """Envía el correo usando la API web de Brevo (Evita los bloqueos de Render)."""
+    """Envía el correo usando la API web de Brevo."""
     url = "https://api.brevo.com/v3/smtp/email"
     
     headers = {
@@ -63,16 +66,14 @@ def enviar_correo_confirmacion(email_destino, nombre, fecha, hora):
         "content-type": "application/json"
     }
     
-    # Estructura del correo que pide Brevo
     payload = {
         "sender": {"name": "Gimnasio PGW", "email": EMAIL_REMITENTE},
         "to": [{"email": email_destino, "name": nombre}],
         "subject": "¡Reserva Confirmada en el Box!",
-        "textContent": f"Hola {nombre},\n\nTu reserva ha sido confirmada con éxito.\n📅 Fecha: {fecha}\n⏰ Hora: {hora}:00 AM\n\n¡Prepárate con todo para el entrenamiento! Nos vemos en el Box."
+        "textContent": f"Hola {nombre},\n\nTu reserva ha sido confirmada con éxito.\n📅 Fecha: {fecha}\n⏰ Hora: {hora}\n\n¡Prepárate con todo para el entrenamiento! Nos vemos en el Box."
     }
     
     try:
-        # Hacemos una petición web normal, Render no la bloquea
         response = requests.post(url, json=payload, headers=headers)
         if response.status_code in [200, 201, 202]:
             print(f"Correo enviado exitosamente a {email_destino} vía Brevo")
@@ -106,20 +107,26 @@ def verificar_rut():
     data = request.json
     rut_usuario = str(data.get('rut')).strip().lower()
     datos = cargar_datos()
-    lista_ruts_limpios = [str(r).strip().lower() for r in datos.get("listaRuts", [])]
     
-    if rut_usuario in lista_ruts_limpios:
-        return jsonify({"success": True, "message": "RUT authorized. Welcome!"})
+    # NUEVO: Compatibilidad con RUTs en string (viejos) y en diccionario (nuevos con nombre)
+    for r in datos.get("listaRuts", []):
+        rut_guardado = r.get("rut").strip().lower() if isinstance(r, dict) else str(r).strip().lower()
+        if rut_guardado == rut_usuario:
+            return jsonify({"success": True, "message": "RUT autorizado. ¡Bienvenido!"})
+            
     return jsonify({"success": False, "message": "El RUT ingresado no figura como alumno activo del Box."}), 403
 
 @app.route('/api/reservar', methods=['POST'])
 def reservar():
     data = request.json
     fecha = str(data.get('fecha')) 
-    hora = str(data.get('hora'))   
+    hora = str(data.get('hora'))   # Recibirá ej: "7:00 AM"
     nombre = data.get('nombre')
     email = str(data.get('email')).strip().lower()
     rut = str(data.get('rut', '')).strip().lower()
+    
+    # Extraemos la clave exacta para el diccionario ("7:00 AM" -> "7:00")
+    hora_key = hora.replace(" AM", "").replace(" PM", "")
     
     datos = cargar_datos()
     
@@ -128,6 +135,7 @@ def reservar():
         
     dia_actual = datos["agendaDias"][fecha]
     
+    # Validar que no tenga doble reserva en el MISMO día
     for persona in dia_actual.get("personas", []):
         if persona.get("email") == email or (rut != "" and persona.get("rut") == rut):
             return jsonify({
@@ -135,10 +143,10 @@ def reservar():
                 "message": f"Ya tienes una reserva registrada para este día en el horario de las {persona['hora']}. Solo se permite 1 cupo diario."
             }), 400
             
-    if hora in dia_actual and dia_actual[hora]["disponibles"] > 0:
-        dia_actual[hora]["disponibles"] -= 1
+    if hora_key in dia_actual and dia_actual[hora_key]["disponibles"] > 0:
+        dia_actual[hora_key]["disponibles"] -= 1
         dia_actual["personas"].append({
-            "hora": f"{hora}:00 AM",
+            "hora": hora,
             "nombre": nombre,
             "email": email,
             "rut": rut 
@@ -146,11 +154,12 @@ def reservar():
         
         guardar_datos(datos)
         
-        # Enviar correo en segundo plano usando Brevo
         hilo_correo = threading.Thread(target=enviar_correo_confirmacion, args=(email, nombre, fecha, hora))
         hilo_correo.start()
         
-        return jsonify({"success": True, "message": f"¡Reserva confirmada para el {fecha} a las {hora}:00 AM!"})
+        # NUEVO: Mensaje personalizado con número de WhatsApp
+        mensaje_exito = f"¡Reserva confirmada para el {fecha} a las {hora}!\n\nSi no puede asistir, por favor dar aviso al WhatsApp: +56 9 1234 5678"
+        return jsonify({"success": True, "message": mensaje_exito})
     
     return jsonify({"success": False, "message": "No quedan cupos disponibles para este horario."}), 400
 
@@ -158,9 +167,10 @@ def reservar():
 def cancelar():
     data = request.json
     fecha = str(data.get('fecha'))
-    hora = str(data.get('hora'))
+    hora = str(data.get('hora')) # Ej: "7:00 AM"
     rut_solicitante = str(data.get('rut', '')).strip().lower()
-    texto_hora = f"{hora}:00 AM"
+    
+    hora_key = hora.replace(" AM", "").replace(" PM", "")
     
     datos = cargar_datos()
     if fecha not in datos["agendaDias"]:
@@ -169,17 +179,16 @@ def cancelar():
     dia_actual = datos["agendaDias"][fecha]
     
     eliminado = False
+    # NUEVO: Busca exactamente por RUT y hora, y no se detiene en el primer error.
     for i, persona in enumerate(dia_actual.get("personas", [])):
-        if persona["hora"] == texto_hora:
-            if persona.get("rut") == rut_solicitante:
-                dia_actual["personas"].pop(i)
-                eliminado = True
-                break
-            else:
-                return jsonify({"success": False, "message": "No puedes cancelar una reserva que no te pertenece."}), 403
+        if persona["hora"] == hora and persona.get("rut") == rut_solicitante:
+            dia_actual["personas"].pop(i)
+            eliminado = True
+            break
             
-    if eliminado and hora in dia_actual and dia_actual[hora]["disponibles"] < dia_actual[hora]["totales"]:
-        dia_actual[hora]["disponibles"] += 1
+    if eliminado:
+        if hora_key in dia_actual and dia_actual[hora_key]["disponibles"] < dia_actual[hora_key]["totales"]:
+            dia_actual[hora_key]["disponibles"] += 1
         guardar_datos(datos)
         return jsonify({"success": True, "message": "Tu cupo ha sido liberado con éxito."})
         
@@ -196,26 +205,28 @@ def admin_login():
 
 @app.route('/api/admin/guardar-cupos', methods=['POST'])
 def admin_guardar_cupos():
+    # Preparamos este endpoint para cuando modifiquemos el panel de Admin
     data = request.json
-    c8 = int(data.get('cupos_8', 10))
-    c9 = int(data.get('cupos_9', 10))
-    c10 = int(data.get('cupos_10', 10))
+    nuevos_cupos = {
+        "7:00": int(data.get('cupos_7_00', 10)),
+        "8:15": int(data.get('cupos_8_15', 10)),
+        "9:30": int(data.get('cupos_9_30', 10)),
+        "11:00": int(data.get('cupos_11_00', 10)),
+        "14:30": int(data.get('cupos_14_30', 10))
+    }
 
     datos = cargar_datos()
 
     for dia_str, dia_data in datos.get("agendaDias", {}).items():
-        if "8" in dia_data:
-            ocupados = sum(1 for p in dia_data.get("personas", []) if p["hora"] == "8:00 AM")
-            dia_data["8"]["totales"] = c8
-            dia_data["8"]["disponibles"] = max(0, c8 - ocupados)
-        if "9" in dia_data:
-            ocupados = sum(1 for p in dia_data.get("personas", []) if p["hora"] == "9:00 AM")
-            dia_data["9"]["totales"] = c9
-            dia_data["9"]["disponibles"] = max(0, c9 - ocupados)
-        if "10" in dia_data:
-            ocupados = sum(1 for p in dia_data.get("personas", []) if p["hora"] == "10:00 AM")
-            dia_data["10"]["totales"] = c10
-            dia_data["10"]["disponibles"] = max(0, c10 - ocupados)
+        for clave_hora, capacidad in nuevos_cupos.items():
+            if clave_hora in dia_data:
+                # Calculamos cuántas personas ya reservaron en esta hora
+                hora_texto_am = f"{clave_hora} AM"
+                hora_texto_pm = f"{clave_hora} PM"
+                ocupados = sum(1 for p in dia_data.get("personas", []) if p["hora"] in [hora_texto_am, hora_texto_pm])
+                
+                dia_data[clave_hora]["totales"] = capacidad
+                dia_data[clave_hora]["disponibles"] = max(0, capacidad - ocupados)
 
     guardar_datos(datos)
     return jsonify({"success": True, "message": "¡Cupos actualizados correctamente!"})
@@ -241,10 +252,13 @@ def admin_configurar_calendario():
             if dia_str not in datos["fechasHabilitadas"]:
                 datos["fechasHabilitadas"].append(dia_str)
             if dia_str not in datos["agendaDias"]:
+                # NUEVO: Calendario habilita con los nuevos horarios
                 datos["agendaDias"][dia_str] = {
-                    "8": {"disponibles": 10, "totales": 10},
-                    "9": {"disponibles": 10, "totales": 10},
-                    "10": {"disponibles": 10, "totales": 10},
+                    "7:00": {"disponibles": 10, "totales": 10},
+                    "8:15": {"disponibles": 10, "totales": 10},
+                    "9:30": {"disponibles": 10, "totales": 10},
+                    "11:00": {"disponibles": 10, "totales": 10},
+                    "14:30": {"disponibles": 10, "totales": 10},
                     "personas": []
                 }
         elif accion == "deshabilitar":
@@ -261,7 +275,8 @@ def admin_eliminar_usuario():
     fecha = str(data.get('fecha'))
     email_a_eliminar = data.get('email')
     hora_persona = data.get('hora')
-    hora_clave = hora_persona.split(":")[0]
+    
+    hora_clave = hora_persona.replace(" AM", "").replace(" PM", "")
     
     datos = cargar_datos()
     if fecha in datos["agendaDias"]:
@@ -279,25 +294,41 @@ def admin_eliminar_usuario():
 def admin_agregar_rut():
     data = request.json
     nuevo_rut = str(data.get('rut')).strip()
+    nombre = str(data.get('nombre', '')).strip()
+    email = str(data.get('email', '')).strip()
+    
     datos = cargar_datos()
-    if nuevo_rut in datos["listaRuts"]:
-        return jsonify({"success": False, "message": "Este RUT ya existe."}), 400
-    datos["listaRuts"].append(nuevo_rut)
+    
+    # NUEVO: Validar si el RUT ya existe (revisando strings o diccionarios)
+    for r in datos["listaRuts"]:
+        if isinstance(r, dict) and r.get("rut") == nuevo_rut:
+            return jsonify({"success": False, "message": "Este RUT ya existe."}), 400
+        elif isinstance(r, str) and r == nuevo_rut:
+            return jsonify({"success": False, "message": "Este RUT ya existe."}), 400
+            
+    # NUEVO: Guardamos el objeto completo
+    datos["listaRuts"].append({"rut": nuevo_rut, "nombre": nombre, "email": email})
     guardar_datos(datos)
-    return jsonify({"success": True, "message": "RUT agregado."})
+    return jsonify({"success": True, "message": "Alumno registrado con éxito."})
 
 @app.route('/api/admin/eliminar-rut', methods=['POST'])
 def admin_eliminar_rut():
     data = request.json
     rut_a_eliminar = str(data.get('rut')).strip()
     datos = cargar_datos()
-    if rut_a_eliminar in datos["listaRuts"]:
-        datos["listaRuts"].remove(rut_a_eliminar)
-        guardar_datos(datos)
-        return jsonify({"success": True, "message": "RUT eliminado."})
+    
+    # NUEVO: Compatibilidad para borrar strings o diccionarios
+    for i, r in enumerate(datos["listaRuts"]):
+        rut_guardado = r.get("rut") if isinstance(r, dict) else r
+        if rut_guardado == rut_a_eliminar:
+            datos["listaRuts"].pop(i)
+            guardar_datos(datos)
+            return jsonify({"success": True, "message": "RUT eliminado."})
+            
     return jsonify({"success": False, "message": "No encontrado."}), 404
 
 if __name__ == '__main__':
     import os
     puerto = int(os.environ.get("PORT", 5000))
     app.run(host='0.0.0.0', port=puerto, debug=False)
+    
