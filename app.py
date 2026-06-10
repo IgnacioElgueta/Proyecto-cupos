@@ -2,7 +2,7 @@ import os
 from flask import Flask, render_template, jsonify, request
 from datetime import datetime, timedelta
 from pymongo import MongoClient
-import requests  
+import requests
 import threading
 
 app = Flask(__name__)
@@ -22,7 +22,10 @@ DATOS_INICIALES = {
     "_id": "configuracion_box",       
     "listaRuts": [],
     "fechasHabilitadas": [],  
-    "agendaDias": {}          
+    "agendaDias": {},
+    "cuposBase": { # NUEVO: Plantilla maestra para recordar siempre tus cupos
+        "7:00": 10, "8:15": 10, "9:30": 10, "11:00": 10, "14:30": 10
+    }          
 }
 
 def cargar_datos():
@@ -31,26 +34,33 @@ def cargar_datos():
         hoy = datetime.now()
         fechas = []
         agenda = {}
+        cupos = DATOS_INICIALES["cuposBase"] # Toma la plantilla
         for i in range(14):
             dia_str = (hoy + timedelta(days=i)).strftime("%Y-%m-%d")
             fechas.append(dia_str)
-            # NUEVO: Generando los nuevos horarios base para días nuevos
             agenda[dia_str] = {
-                "7:00": {"disponibles": 10, "totales": 10},
-                "8:15": {"disponibles": 10, "totales": 10},
-                "9:30": {"disponibles": 10, "totales": 10},
-                "11:00": {"disponibles": 10, "totales": 10},
-                "14:30": {"disponibles": 10, "totales": 10},
+                "7:00": {"disponibles": cupos["7:00"], "totales": cupos["7:00"]},
+                "8:15": {"disponibles": cupos["8:15"], "totales": cupos["8:15"]},
+                "9:30": {"disponibles": cupos["9:30"], "totales": cupos["9:30"]},
+                "11:00": {"disponibles": cupos["11:00"], "totales": cupos["11:00"]},
+                "14:30": {"disponibles": cupos["14:30"], "totales": cupos["14:30"]},
                 "personas": []
             }
         datos_nuevos = {
             "_id": "configuracion_box",
             "listaRuts": [],
             "fechasHabilitadas": fechas,
-            "agendaDias": agenda
+            "agendaDias": agenda,
+            "cuposBase": cupos # Guarda la plantilla en la base nueva
         }
         coleccion.insert_one(datos_nuevos)
         return datos_nuevos
+    
+    # Si existen datos, nos aseguramos de que no falte la plantilla (por si es una BD vieja)
+    if "cuposBase" not in datos:
+        datos["cuposBase"] = DATOS_INICIALES["cuposBase"]
+        guardar_datos(datos)
+        
     return datos
 
 def guardar_datos(datos):
@@ -108,7 +118,7 @@ def verificar_rut():
     rut_usuario = str(data.get('rut')).strip().lower()
     datos = cargar_datos()
     
-    # NUEVO: Compatibilidad con RUTs en string (viejos) y en diccionario (nuevos con nombre)
+    # Compatibilidad con RUTs en string (viejos) y en diccionario (nuevos con nombre)
     for r in datos.get("listaRuts", []):
         rut_guardado = r.get("rut").strip().lower() if isinstance(r, dict) else str(r).strip().lower()
         if rut_guardado == rut_usuario:
@@ -135,12 +145,15 @@ def reservar():
         
     dia_actual = datos["agendaDias"][fecha]
     
-    # Validar que no tenga doble reserva en el MISMO día
+    # Validar que no tenga doble reserva en el MISMO día (Corrección estricta aplicada)
     for persona in dia_actual.get("personas", []):
-        if persona.get("email") == email or (rut != "" and persona.get("rut") == rut):
+        rut_guardado = persona.get("rut", "").strip().lower()
+        email_guardado = persona.get("email", "").strip().lower()
+        
+        if (email != "" and email == email_guardado) or (rut != "" and rut == rut_guardado):
             return jsonify({
                 "success": False, 
-                "message": f"Ya tienes una reserva registrada para este día en el horario de las {persona['hora']}. Solo se permite 1 cupo diario."
+                "message": f"Ya tienes una reserva registrada para este día a las {persona['hora']}. Solo se permite 1 cupo diario."
             }), 400
             
     if hora_key in dia_actual and dia_actual[hora_key]["disponibles"] > 0:
@@ -157,7 +170,6 @@ def reservar():
         hilo_correo = threading.Thread(target=enviar_correo_confirmacion, args=(email, nombre, fecha, hora))
         hilo_correo.start()
         
-        # NUEVO: Mensaje personalizado con número de WhatsApp
         mensaje_exito = f"¡Reserva confirmada para el {fecha} a las {hora}!\n\nSi no puede asistir, por favor dar aviso al WhatsApp: +56 9 5650 4103"
         return jsonify({"success": True, "message": mensaje_exito})
     
@@ -179,7 +191,6 @@ def cancelar():
     dia_actual = datos["agendaDias"][fecha]
     
     eliminado = False
-    # NUEVO: Busca exactamente por RUT y hora, y no se detiene en el primer error.
     for i, persona in enumerate(dia_actual.get("personas", [])):
         if persona["hora"] == hora and persona.get("rut") == rut_solicitante:
             dia_actual["personas"].pop(i)
@@ -206,7 +217,6 @@ def admin_login():
 @app.route('/api/admin/guardar-cupos', methods=['POST'])
 def admin_guardar_cupos():
     data = request.json
-    # CORRECCIÓN: Ahora Python busca los nombres exactos que envía el script.js
     nuevos_cupos = {
         "7:00": int(data.get('7:00', 10)),
         "8:15": int(data.get('8:15', 10)),
@@ -216,18 +226,20 @@ def admin_guardar_cupos():
     }
 
     datos = cargar_datos()
+    
+    # 1. Guardar la configuración GLOBAL para que no se borre
+    datos["cuposBase"] = nuevos_cupos
 
+    # 2. Actualizar los cupos en los días que ya existen
     for dia_str, dia_data in datos.get("agendaDias", {}).items():
         for clave_hora, capacidad in nuevos_cupos.items():
             if clave_hora in dia_data:
-                # Calculamos cuántas personas ya reservaron en esta hora (ignorando si tiene AM/PM para evitar errores)
                 ocupados = sum(1 for p in dia_data.get("personas", []) if p["hora"].replace(" AM", "").replace(" PM", "") == clave_hora)
-                
                 dia_data[clave_hora]["totales"] = capacidad
                 dia_data[clave_hora]["disponibles"] = max(0, capacidad - ocupados)
 
     guardar_datos(datos)
-    return jsonify({"success": True, "message": "¡Cupos actualizados correctamente!"})
+    return jsonify({"success": True, "message": "¡Cupos base actualizados y aplicados a todo el calendario!"})
 
 @app.route('/api/admin/configurar-calendario', methods=['POST'])
 def admin_configurar_calendario():
@@ -250,13 +262,14 @@ def admin_configurar_calendario():
             if dia_str not in datos["fechasHabilitadas"]:
                 datos["fechasHabilitadas"].append(dia_str)
             if dia_str not in datos["agendaDias"]:
-                # NUEVO: Calendario habilita con los nuevos horarios
+                # Corrección: Ahora lee de la plantilla base al crear nuevos días
+                cupos_maestros = datos.get("cuposBase", DATOS_INICIALES["cuposBase"])
                 datos["agendaDias"][dia_str] = {
-                    "7:00": {"disponibles": 10, "totales": 10},
-                    "8:15": {"disponibles": 10, "totales": 10},
-                    "9:30": {"disponibles": 10, "totales": 10},
-                    "11:00": {"disponibles": 10, "totales": 10},
-                    "14:30": {"disponibles": 10, "totales": 10},
+                    "7:00": {"disponibles": cupos_maestros["7:00"], "totales": cupos_maestros["7:00"]},
+                    "8:15": {"disponibles": cupos_maestros["8:15"], "totales": cupos_maestros["8:15"]},
+                    "9:30": {"disponibles": cupos_maestros["9:30"], "totales": cupos_maestros["9:30"]},
+                    "11:00": {"disponibles": cupos_maestros["11:00"], "totales": cupos_maestros["11:00"]},
+                    "14:30": {"disponibles": cupos_maestros["14:30"], "totales": cupos_maestros["14:30"]},
                     "personas": []
                 }
         elif accion == "deshabilitar":
@@ -297,14 +310,12 @@ def admin_agregar_rut():
     
     datos = cargar_datos()
     
-    # NUEVO: Validar si el RUT ya existe (revisando strings o diccionarios)
     for r in datos["listaRuts"]:
         if isinstance(r, dict) and r.get("rut") == nuevo_rut:
             return jsonify({"success": False, "message": "Este RUT ya existe."}), 400
         elif isinstance(r, str) and r == nuevo_rut:
             return jsonify({"success": False, "message": "Este RUT ya existe."}), 400
             
-    # NUEVO: Guardamos el objeto completo
     datos["listaRuts"].append({"rut": nuevo_rut, "nombre": nombre, "email": email})
     guardar_datos(datos)
     return jsonify({"success": True, "message": "Alumno registrado con éxito."})
@@ -315,7 +326,6 @@ def admin_eliminar_rut():
     rut_a_eliminar = str(data.get('rut')).strip()
     datos = cargar_datos()
     
-    # NUEVO: Compatibilidad para borrar strings o diccionarios
     for i, r in enumerate(datos["listaRuts"]):
         rut_guardado = r.get("rut") if isinstance(r, dict) else r
         if rut_guardado == rut_a_eliminar:
@@ -329,3 +339,4 @@ if __name__ == '__main__':
     import os
     puerto = int(os.environ.get("PORT", 5000))
     app.run(host='0.0.0.0', port=puerto, debug=False)
+    
