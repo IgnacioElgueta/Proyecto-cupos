@@ -158,7 +158,7 @@ def reservar():
         hilo_correo.start()
         
         # NUEVO: Mensaje personalizado con número de WhatsApp
-        mensaje_exito = f"¡Reserva confirmada para el {fecha} a las {hora}!\n\nSi no puede asistir, por favor dar aviso al WhatsApp: +56 9 1234 5678"
+        mensaje_exito = f"¡Reserva confirmada para el {fecha} a las {hora}!\n\nSi no puede asistir, por favor dar aviso al WhatsApp: +56 9 5650 4103"
         return jsonify({"success": True, "message": mensaje_exito})
     
     return jsonify({"success": False, "message": "No quedan cupos disponibles para este horario."}), 400
@@ -205,14 +205,14 @@ def admin_login():
 
 @app.route('/api/admin/guardar-cupos', methods=['POST'])
 def admin_guardar_cupos():
-    # Preparamos este endpoint para cuando modifiquemos el panel de Admin
     data = request.json
+    # CORRECCIÓN: Ahora Python busca los nombres exactos que envía el script.js
     nuevos_cupos = {
-        "7:00": int(data.get('cupos_7_00', 10)),
-        "8:15": int(data.get('cupos_8_15', 10)),
-        "9:30": int(data.get('cupos_9_30', 10)),
-        "11:00": int(data.get('cupos_11_00', 10)),
-        "14:30": int(data.get('cupos_14_30', 10))
+        "7:00": int(data.get('7:00', 10)),
+        "8:15": int(data.get('8:15', 10)),
+        "9:30": int(data.get('9:30', 10)),
+        "11:00": int(data.get('11:00', 10)),
+        "14:30": int(data.get('14:30', 10))
     }
 
     datos = cargar_datos()
@@ -220,10 +220,8 @@ def admin_guardar_cupos():
     for dia_str, dia_data in datos.get("agendaDias", {}).items():
         for clave_hora, capacidad in nuevos_cupos.items():
             if clave_hora in dia_data:
-                # Calculamos cuántas personas ya reservaron en esta hora
-                hora_texto_am = f"{clave_hora} AM"
-                hora_texto_pm = f"{clave_hora} PM"
-                ocupados = sum(1 for p in dia_data.get("personas", []) if p["hora"] in [hora_texto_am, hora_texto_pm])
+                # Calculamos cuántas personas ya reservaron en esta hora (ignorando si tiene AM/PM para evitar errores)
+                ocupados = sum(1 for p in dia_data.get("personas", []) if p["hora"].replace(" AM", "").replace(" PM", "") == clave_hora)
                 
                 dia_data[clave_hora]["totales"] = capacidad
                 dia_data[clave_hora]["disponibles"] = max(0, capacidad - ocupados)
@@ -331,4 +329,3 @@ if __name__ == '__main__':
     import os
     puerto = int(os.environ.get("PORT", 5000))
     app.run(host='0.0.0.0', port=puerto, debug=False)
-    

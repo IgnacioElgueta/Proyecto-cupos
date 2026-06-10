@@ -136,13 +136,11 @@ function actualizarInterfazHorariosAlumno() {
 let horaEnProceso = null;
 
 function abrirFormulario(hora) {
-    // ELIMINADO: El bloqueo local "yaTieneReserva" que no dejaba agendar en otros días
-    
     const fechaElegida = document.getElementById("selector-fecha-reserva").value;
     horaEnProceso = hora;
     
     document.getElementById("fecha-seleccionada-texto").innerText = fechaElegida;
-    document.getElementById("hora-seleccionada").innerText = hora; // Ya no agregamos "AM" extra aquí, el HTML ya lo trae
+    document.getElementById("hora-seleccionada").innerText = hora; 
     
     const seccionReg = document.getElementById("seccion-registro");
     seccionReg.style.display = "block";
@@ -327,7 +325,6 @@ function agregarRutAdmin() {
     const inputNombre = document.getElementById("input-nuevo-nombre");
     const inputEmail = document.getElementById("input-nuevo-email");
     
-    // NUEVO: Capturar todos los campos si existen (para compatibilidad con el admin.html antiguo si aún no se actualiza)
     const nuevoRut = inputRut ? inputRut.value.trim() : "";
     const nuevoNombre = inputNombre ? inputNombre.value.trim() : "";
     const nuevoEmail = inputEmail ? inputEmail.value.trim() : "";
@@ -384,7 +381,6 @@ function actualizarListaRutsDom(listaRuts) {
         return;
     }
 
-    // NUEVO: Adaptación para mostrar RUTs antiguos (strings) y nuevos (diccionarios con nombre)
     listaRuts.forEach(item => {
         const rutStr = typeof item === 'object' ? item.rut : item;
         const nombreStr = (typeof item === 'object' && item.nombre) ? `<br><small style="color: #a1a1aa;">${item.nombre}</small>` : "";
@@ -411,22 +407,22 @@ function actualizarListaRutsDom(listaRuts) {
 
 // --- NUEVA FUNCIÓN: ENVIAR LOS CUPOS CONFIGURADOS A PYTHON ---
 function guardarCuposEstandarAdmin() {
-    // NUEVO: Adaptado para capturar los nuevos horarios desde el admin.html
     const cupos7_00 = document.getElementById("input-cupos-7_00") ? document.getElementById("input-cupos-7_00").value : 10;
     const cupos8_15 = document.getElementById("input-cupos-8_15") ? document.getElementById("input-cupos-8_15").value : 10;
     const cupos9_30 = document.getElementById("input-cupos-9_30") ? document.getElementById("input-cupos-9_30").value : 10;
     const cupos11_00 = document.getElementById("input-cupos-11_00") ? document.getElementById("input-cupos-11_00").value : 10;
     const cupos14_30 = document.getElementById("input-cupos-14_30") ? document.getElementById("input-cupos-14_30").value : 10;
 
+    // Enviamos las llaves en el formato exacto que Python espera
     fetch('/api/admin/guardar-cupos', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-            cupos_7_00: parseInt(cupos7_00) || 10,
-            cupos_8_15: parseInt(cupos8_15) || 10,
-            cupos_9_30: parseInt(cupos9_30) || 10,
-            cupos_11_00: parseInt(cupos11_00) || 10,
-            cupos_14_30: parseInt(cupos14_30) || 10
+            "7:00": parseInt(cupos7_00) || 10,
+            "8:15": parseInt(cupos8_15) || 10,
+            "9:30": parseInt(cupos9_30) || 10,
+            "11:00": parseInt(cupos11_00) || 10,
+            "14:30": parseInt(cupos14_30) || 10
         })
     })
     .then(response => response.json())
@@ -445,7 +441,6 @@ function guardarCuposEstandarAdmin() {
 function actualizarInputsCuposAdmin() {
     if (!datosGlobales || !datosGlobales.agendaDias) return;
 
-    // Buscamos si hay días guardados para ver cuántos cupos totales tienen
     const diasGuardados = Object.keys(datosGlobales.agendaDias);
     
     if (diasGuardados.length > 0) {
