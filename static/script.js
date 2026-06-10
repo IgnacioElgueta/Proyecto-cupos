@@ -4,7 +4,6 @@ let rutUsuarioConectado = ""; // Recordará el RUT del alumno conectado
 
 // Al cargar la página, inicializamos las fechas del sistema
 document.addEventListener("DOMContentLoaded", () => {
-    // Seteamos la fecha de hoy por defecto en los inputs tipo date
     const hoyStr = obtenerFechaHoyString();
     
     const selectorReserva = document.getElementById("selector-fecha-reserva");
@@ -25,28 +24,21 @@ function obtenerFechaHoyString() {
     return [anio, mes.padStart(2, '0'), dia.padStart(2, '0')].join('-');
 }
 
-// 1. FUNCIÓN PRINCIPAL PARA SINCRONIZAR CON PYTHON
+// 1. FUNCIÓN PRINCIPAL PARA SINCRONIZAR CON PYTHON (Caché corregido)
 function cargarDatosDelServidor() {
-    fetch('/api/datos')
+    // El getTime() evita que el navegador guarde la respuesta antigua en caché
+    fetch('/api/datos?t=' + new Date().getTime())
         .then(response => response.json())
         .then(data => {
-            datosGlobales = data; // Almacenamos el gran JSON
+            datosGlobales = data; 
             
-            // Refrescar la interfaz del Alumno
             actualizarInterfazHorariosAlumno();
-            
-            // Refrescar la interfaz del Administrador (RUTs)
             actualizarListaRutsDom(data.listaRuts);
-            
-            // Refrescar la tabla de asistencia del Administrador según su fecha elegida
             actualizarTablaAdminAsistencia();
-
-            // Actualizar las cajitas de los cupos con la info real
             actualizarInputsCuposAdmin();
         })
         .catch(error => console.error("Error al conectar con Python:", error));
 }
-
 
 // --- LÓGICA DE NAVEGACIÓN Y AGENDA DEL ALUMNO ---
 
@@ -114,11 +106,10 @@ function actualizarInterfazHorariosAlumno() {
         
         horas.forEach(h => {
             const el = document.getElementById(`cupos-${h}`);
-            if (el) el.innerText = "10 / 10";
+            if (el) el.innerText = "10 / 10"; // Esto solo se muestra de vista si está bloqueado
         });
     }
 }
-
 
 // --- LÓGICA DE PROCESAMIENTO DE RESERVAS (ALUMNOS) ---
 
@@ -191,7 +182,6 @@ function cancelarCupoDirecto(hora) {
     })
     .catch(error => alert("Error al cancelar el cupo."));
 }
-
 
 // --- LÓGICA PANEL ADMINISTRATIVO EXCLUSIVO ---
 
@@ -302,8 +292,6 @@ function configurarCalendarioAdmin(accion) {
     .catch(error => alert("Error al configurar las fechas de la agenda."));
 }
 
-// --- CONTROLES AUXILIARES DE RUT ---
-
 function agregarRutAdmin() {
     const inputRut = document.getElementById("input-nuevo-rut");
     const inputNombre = document.getElementById("input-nuevo-nombre");
@@ -389,7 +377,6 @@ function actualizarListaRutsDom(listaRuts) {
     });
 }
 
-// --- FUNCIÓN PARA ENVIAR CUPOS ---
 function guardarCuposEstandarAdmin() {
     const cupos7_00 = document.getElementById("input-cupos-7_00") ? document.getElementById("input-cupos-7_00").value : 10;
     const cupos8_15 = document.getElementById("input-cupos-8_15") ? document.getElementById("input-cupos-8_15").value : 10;
@@ -420,7 +407,6 @@ function guardarCuposEstandarAdmin() {
     .catch(error => alert("Error al guardar la nueva configuración de cupos."));
 }
 
-// --- FUNCIÓN CORREGIDA: REFLEJA LOS CUPOS BASE GLOBALES ---
 function actualizarInputsCuposAdmin() {
     if (!datosGlobales || !datosGlobales.cuposBase) return;
 
@@ -432,9 +418,10 @@ function actualizarInputsCuposAdmin() {
     const in11_00 = document.getElementById("input-cupos-11_00");
     const in14_30 = document.getElementById("input-cupos-14_30");
 
-    if (in7_00) in7_00.value = base["7:00"];
-    if (in8_15) in8_15.value = base["8:15"];
-    if (in9_30) in9_30.value = base["9:30"];
-    if (in11_00) in11_00.value = base["11:00"];
-    if (in14_30) in14_30.value = base["11:00"] ? base["14:30"] : 10;
+    if (in7_00) in7_00.value = base["7:00"] || 10;
+    if (in8_15) in8_15.value = base["8:15"] || 10;
+    if (in9_30) in9_30.value = base["9:30"] || 10;
+    if (in11_00) in11_00.value = base["11:00"] || 10;
+    // Bug corregido: ahora lee correctamente la base de 14:30
+    if (in14_30) in14_30.value = base["14:30"] || 10;
 }
