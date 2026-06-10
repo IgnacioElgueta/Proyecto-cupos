@@ -39,6 +39,8 @@ DATOS_INICIALES = {
 
 def cargar_datos():
     datos = coleccion.find_one({"_id": "configuracion_box"})
+    
+    # 1. Si no hay nada, creamos todo desde cero (igual que antes)
     if not datos:
         hoy = datetime.now()
         fechas = []
@@ -65,8 +67,26 @@ def cargar_datos():
         coleccion.insert_one(datos_nuevos)
         return datos_nuevos
     
+    # --- AQUÍ EMPIEZA LA MAGIA DE LA ACTUALIZACIÓN ---
+    hubo_cambios = False
+    
+    # 2. Verificamos que exista la base de cupos
     if "cuposBase" not in datos:
         datos["cuposBase"] = DATOS_INICIALES["cuposBase"]
+        hubo_cambios = True
+        
+    cupos_maestros = datos["cuposBase"]
+    
+    # 3. Revisamos cada día en la base de datos y le inyectamos los horarios faltantes
+    if "agendaDias" in datos:
+        for dia_str, dia_data in datos["agendaDias"].items():
+            for hora_nueva, capacidad in cupos_maestros.items():
+                if hora_nueva not in dia_data:
+                    dia_data[hora_nueva] = {"disponibles": capacidad, "totales": capacidad}
+                    hubo_cambios = True
+                    
+    # 4. Si el código detectó e inyectó horarios nuevos, guardamos la actualización en MongoDB
+    if hubo_cambios:
         guardar_datos(datos)
         
     return datos
@@ -333,4 +353,3 @@ def admin_eliminar_rut():
 if __name__ == '__main__':
     puerto = int(os.environ.get("PORT", 5000))
     app.run(host='0.0.0.0', port=puerto, debug=False)
-    
