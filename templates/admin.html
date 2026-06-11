@@ -62,6 +62,7 @@
                             <input type="number" id="input-cupos-14_30" value="10" min="0">
                         </div>
                         <button onclick="guardarCuposEstandarAdmin()" class="btn btn-guardar" style="width: 100%; font-size: 13px;">💾 Guardar Cupos</button>
+                        <button onclick="aplicarCuposBaseRangoAdmin()" class="btn btn-cancelar" style="width: 100%; font-size: 13px; margin-top: 5px; color: #ffbc0d; border-color: #ffbc0d; background: rgba(255,188,13,0.05);">🔄 Maestro: Forzar Base en Rango</button>
                     </div>
                 </div>
 
@@ -80,15 +81,15 @@
                             </div>
                         </div>
                         <div style="display: flex; gap: 10px;">
-                            <button onclick="configurarCalendarioAdmin('habilitar')" style="flex: 1; background: #22c55e; color: white; border: none; padding: 8px; border-radius: 4px; cursor: pointer;">🔓 Habilitar</button>
-                            <button onclick="configurarCalendarioAdmin('deshabilitar')" style="flex: 1; background: #ef4444; color: white; border: none; padding: 8px; border-radius: 4px; cursor: pointer;">🔒 Bloquear</button>
+                            <button onclick="configurarCalendarioAdmin('habilitar')" style="flex: 1; background: #22c55e; color: white; border: none; padding: 8px; border-radius: 4px; cursor: pointer; font-weight: bold;">🔓 Habilitar</button>
+                            <button onclick="configurarCalendarioAdmin('deshabilitar')" style="flex: 1; background: #ef4444; color: white; border: none; padding: 8px; border-radius: 4px; cursor: pointer; font-weight: bold;">🔒 Bloquear</button>
                         </div>
                     </div>
 
                     <div>
                         <h3>Alumnos Autorizados</h3>
                         <div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 15px; background: #242426; padding: 12px; border-radius: 6px; border: 1px solid #3a3a3c;">
-                            <input type="text" id="input-nuevo-rut" placeholder="RUT (Ej: 12345678-9)" style="padding: 8px; background: #1c1c1e; border: 1px solid #3a3a3c; color: white; border-radius: 4px;">
+                            <input type="text" id="input-nuevo-rut" placeholder="RUT (Ej: 12.345.678-9)" style="padding: 8px; background: #1c1c1e; border: 1px solid #3a3a3c; color: white; border-radius: 4px;">
                             <input type="text" id="input-nuevo-nombre" placeholder="Nombre completo" style="padding: 8px; background: #1c1c1e; border: 1px solid #3a3a3c; color: white; border-radius: 4px;">
                             <input type="email" id="input-nuevo-email" placeholder="Correo electrónico" style="padding: 8px; background: #1c1c1e; border: 1px solid #3a3a3c; color: white; border-radius: 4px;">
                             <button onclick="agregarRutAdmin()" class="btn btn-reservar" style="margin-top: 5px;">➕ Añadir Alumno</button>
@@ -107,8 +108,13 @@
                             <input type="text" id="input-radar-rut" placeholder="RUT del alumno" style="flex: 1; padding: 8px; background: #1c1c1e; border: 1px solid #3a3a3c; color: white; border-radius: 4px;">
                             <button onclick="buscarReservasRadar()" class="btn btn-reservar" style="padding: 8px 12px;">🔍 Buscar</button>
                         </div>
-                        <p id="radar-nombre-resultado" style="font-size: 15px; font-weight: bold; color: #22c55e; margin-bottom: 10px; display: none; text-align: center;"></p>
-                        <ul id="lista-radar-resultados" style="list-style: none; max-height: 180px; overflow-y: auto; background: #121214; padding: 10px; border-radius: 4px; border: 1px solid #29292e;">
+                        
+                        <div id="radar-acciones-box" style="display: none; background: rgba(239, 68, 68, 0.1); padding: 12px; border-radius: 6px; border: 1px solid rgba(239, 68, 68, 0.2); margin-bottom: 15px;">
+                            <p id="radar-nombre-resultado" style="font-size: 14px; font-weight: bold; color: #22c55e; margin-bottom: 8px; text-align: left;"></p>
+                            <button onclick="eliminarTodasReservasRadar()" class="btn" style="background: #ef4444; color: white; padding: 6px 10px; font-size: 12px; width: 100%; margin: 0; font-weight: bold;">☢️ Nuclear: Vaciar Agenda Completa</button>
+                        </div>
+
+                        <ul id="lista-radar-resultados" style="list-style: none; max-height: 220px; overflow-y: auto; background: #121214; padding: 10px; border-radius: 4px; border: 1px solid #29292e;">
                             <li style="text-align: center; color: #7c7c8a; font-size: 13px;">Ingresa un RUT para escanear</li>
                         </ul>
                     </div>
@@ -134,8 +140,8 @@
                 <input type="email" id="edit-email" style="width: 100%; padding: 10px; background: #1c1c1e; border: 1px solid #3a3a3c; color: white; border-radius: 4px;">
             </div>
             <div style="display: flex; gap: 10px;">
-                <button onclick="guardarEdicionRut()" class="btn" style="background: #22c55e; color: white;">Guardar</button>
-                <button onclick="cerrarModalEditarRut()" class="btn btn-cancelar">Cancelar</button>
+                <button onclick="guardarEdicionRut()" class="btn" style="background: #22c55e; color: white; font-weight: bold;">Guardar</button>
+                <button onclick="cerrarModalEditarRut()" class="btn btn-cancelar" style="font-weight: bold;">Cancelar</button>
             </div>
         </div>
     </div>

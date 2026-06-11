@@ -73,7 +73,7 @@ function validarRutAcceso(event) {
             alert(data.message);
         }
     })
-    .catch(error => alert("Error de conexión."));
+    .catch(error => alert("Error de conexión con el Box."));
 }
 
 function cambiarFechaAgenda() {
@@ -349,21 +349,50 @@ function actualizarInputsCuposAdmin() {
     });
 }
 
-// --- RADAR ---
+// --- NUEVA LÓGICA INTEGRADORA DE LOS 3 BOTONES ---
+
+// IMPLEMENTACIÓN 1: Acción Asíncrona del Botón Maestro de Cupos
+function aplicarCuposBaseRangoAdmin() {
+    const fInicio = document.getElementById("admin-fecha-inicio").value;
+    const fFin = document.getElementById("admin-fecha-fin").value;
+
+    if (!fInicio || !fFin) {
+        alert("Por favor selecciona un rango de fechas (Desde/Hasta) para propagar los cupos base.");
+        return;
+    }
+
+    if (!confirm("¿Deseas sobreescribir la capacidad total de clases en este rango de fechas con los valores base actuales?")) return;
+
+    fetch('/api/admin/aplicar-cupos-rango', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fechaInicio: fInicio, fechaFin: fFin })
+    })
+    .then(response => response.json())
+    .then(data => {
+        alert(data.message);
+        if (data.success) cargarDatosDelServidor();
+    })
+    .catch(error => alert("Error al propagar la operación maestra."));
+}
+
+// Radar Base
 function buscarReservasRadar() {
     const rutBuscado = document.getElementById("input-radar-rut").value.trim();
     if (!rutBuscado) return;
 
     const listaDom = document.getElementById("lista-radar-resultados");
+    const accionesBox = document.getElementById("radar-acciones-box");
     const nombreResultado = document.getElementById("radar-nombre-resultado");
-    listaDom.innerHTML = `<li style="text-align: center; color: #7c7c8a; font-size: 13px;">Buscando...</li>`;
-    nombreResultado.style.display = "none";
+    
+    listaDom.innerHTML = `<li style="text-align: center; color: #7c7c8a; font-size: 13px;">Buscando en la base de datos...</li>`;
+    accionesBox.style.display = "none";
 
     if (datosGlobales && datosGlobales.listaRuts) {
         const alumnoInfo = datosGlobales.listaRuts.find(a => a.rut === rutBuscado);
         if (alumnoInfo && alumnoInfo.nombre) {
-            nombreResultado.innerText = `👤 ${alumnoInfo.nombre}`;
-            nombreResultado.style.display = "block";
+            nombreResultado.innerText = `👤 Alumno: ${alumnoInfo.nombre}`;
+            accionesBox.style.display = "block";
         }
     }
 
@@ -376,16 +405,68 @@ function buscarReservasRadar() {
     .then(data => {
         listaDom.innerHTML = "";
         if (!data.success || data.reservas.length === 0) {
-            listaDom.innerHTML = `<li style="text-align: center; color: #ef4444; font-size: 13px; padding: 10px;">No se encontraron reservas futuras.</li>`;
+            listaDom.innerHTML = `<li style="text-align: center; color: #ef4444; font-size: 13px; padding: 10px;">No registra reservas activas en el sistema.</li>`;
             return;
         }
+        
         data.reservas.forEach(res => {
             const li = document.createElement("li");
             li.style.borderBottom = "1px solid #29292e";
-            li.style.padding = "8px 0";
-            li.style.fontSize = "14px";
-            li.innerHTML = `<strong style="color: #22c55e;">${res.fecha}</strong> a las <strong>${res.hora}</strong>`;
+            li.style.padding = "8px 4px";
+            li.style.fontSize = "13px";
+            li.style.display = "flex";
+            li.style.justifyContent = "space-between";
+            li.style.alignItems = "center";
+            
+            // IMPLEMENTACIÓN 3: Botón Quirúrgico en línea para cada fila
+            li.innerHTML = `
+                <div><strong style="color: #22c55e;">${res.fecha}</strong> a las <strong>${res.hora}</strong></div>
+                <button onclick="eliminarReservaQuirurgica('${rutBuscado}', '${res.fecha}', '${res.hora}')" 
+                        style="background: none; border: none; color: #ef4444; cursor: pointer; font-size: 13px; padding: 2px 6px;" 
+                        title="Remoción Quirúrgica">✂️ Dar de baja</button>
+            `;
             listaDom.appendChild(li);
         });
     });
+}
+
+// IMPLEMENTACIÓN 2: Acción del Botón Nuclear del Radar
+function eliminarTodasReservasRadar() {
+    const rutBuscado = document.getElementById("input-radar-rut").value.trim();
+    if (!rutBuscado) return;
+
+    if (!confirm(`⚠️ ¡ALERTA NUCLEAR!\n¿Estás completamente seguro de purgar TODA la agenda del alumno con RUT ${rutBuscado}? Esta operación liberará todos sus cupos inmediatamente.`)) {
+        return;
+    }
+
+    fetch('/api/admin/radar/cancelar-todas', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ rut: rutBuscado })
+    })
+    .then(response => response.json())
+    .then(data => {
+        alert(data.message);
+        buscarReservasRadar();
+        cargarDatosDelServidor();
+    })
+    .catch(error => alert("Error en la purga nuclear."));
+}
+
+// IMPLEMENTACIÓN 3 (Función): Ejecución del botón Quirúrgico
+function eliminarReservaQuirurgica(rut, fecha, hora) {
+    if (!confirm(`¿Eliminar quirúrgicamente la reserva del día ${fecha} a las ${hora}?`)) return;
+
+    fetch('/api/admin/radar/cancelar-unica', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ rut: rut, fecha: fecha, hora: hora })
+    })
+    .then(response => response.json())
+    .then(data => {
+        alert(data.message);
+        buscarReservasRadar();
+        cargarDatosDelServidor();
+    })
+    .catch(error => alert("Error al procesar remoción quirúrgica."));
 }
