@@ -22,7 +22,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const selectorAdmin = document.getElementById("selector-fecha-admin");
     if (selectorAdmin) selectorAdmin.value = hoyStr;
 
-    // Activar el formateador de RUT si existe el input en la pantalla
+    // Activar el formateador de RUT en el acceso de alumnos
     const inputRut = document.getElementById("rut-alumno");
     if (inputRut) {
         inputRut.addEventListener("input", (e) => {
@@ -30,9 +30,18 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
+    // Activar el formateador de RUT en el Radar del Admin
     const inputRadarRut = document.getElementById("input-radar-rut");
-    if(inputRadarRut) {
+    if (inputRadarRut) {
         inputRadarRut.addEventListener("input", (e) => {
+            e.target.value = formatearRUT(e.target.value);
+        });
+    }
+
+    // ¡NUEVO! Activar el formateador de RUT al registrar un nuevo alumno
+    const inputNuevoRut = document.getElementById("input-nuevo-rut");
+    if (inputNuevoRut) {
+        inputNuevoRut.addEventListener("input", (e) => {
             e.target.value = formatearRUT(e.target.value);
         });
     }
@@ -147,7 +156,6 @@ function confirmarReserva(event) {
     fetch('/api/reservar', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        // Ya no enviamos nombre ni email. Python los buscará por el RUT.
         body: JSON.stringify({
             fecha: fechaElegida,
             hora: horaEnProceso,
@@ -258,7 +266,6 @@ function eliminarUsuarioAdmin(rut, hora) {
     const fechaFiltro = document.getElementById("selector-fecha-admin").value;
     if (!confirm(`¿Eliminar reserva de las ${hora}?`)) return;
 
-    // Cambiado de email a rut para ser consistentes con la nueva lógica
     fetch('/api/admin/eliminar-usuario', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -272,6 +279,10 @@ function eliminarUsuarioAdmin(rut, hora) {
         }
     })
     .catch(error => alert("Error al intentar eliminar."));
+}
+
+function configureCalendarioAdmin(accion) { // Nota: Corregido nombre según firmas usuales
+    configurarCalendarioAdmin(accion);
 }
 
 function configurarCalendarioAdmin(accion) {
@@ -307,7 +318,10 @@ function agregarRutAdmin() {
     const nuevoNombre = inputNombre ? inputNombre.value.trim() : "";
     const nuevoEmail = inputEmail ? inputEmail.value.trim() : "";
 
-    if (!nuevoRut) return;
+    if (!nuevoRut) {
+        alert("El campo RUT es obligatorio.");
+        return;
+    }
 
     fetch('/api/admin/agregar-rut', {
         method: 'POST',
@@ -329,7 +343,8 @@ function agregarRutAdmin() {
         } else {
             alert(data.message);
         }
-    });
+    })
+    .catch(error => alert("Error al guardar el nuevo alumno."));
 }
 
 function eliminarRutAdmin(rut) {
@@ -361,7 +376,11 @@ function actualizarListaRutsDom(listaRuts) {
 
     listaRuts.forEach(item => {
         const rutStr = item.rut;
-        const nombreStr = item.nombre ? `<br><small style="color: #a1a1aa;">${item.nombre}</small>` : "";
+        // Ahora combinamos Nombre y Correo electrónico de forma elegante debajo del RUT
+        let infoExtra = "";
+        if (item.nombre || item.email) {
+            infoExtra = `<br><small style="color: #a1a1aa;">${item.nombre || 'Sin nombre'}${item.email ? ' | ' + item.email : ''}</small>`;
+        }
 
         const li = document.createElement("li");
         li.style.display = "flex";
@@ -375,7 +394,7 @@ function actualizarListaRutsDom(listaRuts) {
         li.innerHTML = `
             <div>
                 <strong>${rutStr}</strong>
-                ${nombreStr}
+                ${infoExtra}
             </div>
             <button onclick="eliminarRutAdmin('${rutStr}')" style="background: none; border: none; color: #ef4444; cursor: pointer; font-size: 14px; font-weight: bold; padding: 0 5px;">✕</button>
         `;
@@ -421,7 +440,7 @@ function actualizarInputsCuposAdmin() {
     if (document.getElementById("input-cupos-14_30")) document.getElementById("input-cupos-14_30").value = base["14:30"] || 10;
 }
 
-// NUEVA FUNCIÓN: RADAR DE ALUMNOS
+// RADAR DE ALUMNOS
 function buscarReservasRadar() {
     const rutBuscado = document.getElementById("input-radar-rut").value.trim();
     if (!rutBuscado) return;
