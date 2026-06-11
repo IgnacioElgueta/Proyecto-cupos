@@ -252,6 +252,7 @@ input[type="date"]:focus {
     margin-bottom: 25px;
 }
 
+/* Cambiado ligeramente para dar espacio armónico a paneles complejos */
 .admin-grid {
     display: grid;
     grid-template-columns: 1fr 1.2fr 1.8fr;
@@ -330,8 +331,21 @@ input[type="date"]:focus {
     background: #1919e6;
 }
 
+#lista-ruts-contenedor li {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px;
+    border-bottom: 1px solid #1a1a1e;
+}
+
 #lista-ruts-contenedor li button {
     transition: transform 0.2s ease, color 0.2s ease;
+    background: none;
+    border: none;
+    color: #7c7c8a;
+    cursor: pointer;
+    font-size: 1rem;
 }
 #lista-ruts-contenedor li button:hover {
     transform: scale(1.2);
@@ -401,4 +415,84 @@ td {
     .hora {
         font-size: 1.5rem;
     }
+}
+
+/* ==========================================================================
+   7. NUEVOS COMPONENTES: RADAR DE ALUMNOS Y DETALLES EN LISTAS (INYECTADO)
+   ========================================================================== */
+.radar-buscador {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 15px;
+}
+
+.radar-buscador input {
+    flex: 1;
+    background-color: #1a1a1e;
+    border: 1px solid #29292e;
+    color: white;
+    padding: 10px;
+    border-radius: 6px;
+    font-size: 0.9rem;
+}
+
+.radar-buscador input:focus {
+    border-color: #1919e6;
+    outline: none;
+}
+
+.radar-resultados {
+    max-height: 150px;
+    overflow-y: auto;
+    background-color: #1a1a1e;
+    border-radius: 6px;
+    padding: 5px;
+    border: 1px solid #29292e;
+}
+
+.radar-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px;
+    font-size: 0.85rem;
+    border-bottom: 1px solid #121214;
+}
+
+.radar-item:last-child {
+    border-bottom: none;
+}
+
+.radar-fecha {
+    color: #e1e1e6;
+    font-weight: 500;
+}
+
+.radar-hora {
+    color: #00ff88;
+    font-weight: bold;
+}
+
+.radar-vacio {
+    text-align: center;
+    color: #7c7c8a;
+    font-size: 0.85rem;
+    padding: 15px 0;
+}
+
+/* Bloque contenedor para la info interna de la lista de alumnos activos */
+.alumno-info-bloque {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.alumno-nombre-txt {
+    font-weight: bold;
+    color: #ffffff;
+    font-size: 0.9rem;
+}
+
+.alumno-subdatos-txt {
+    font-size: 0.75rem;
+    color: #a8a8b3;
 }

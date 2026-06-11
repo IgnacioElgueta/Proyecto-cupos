@@ -20,7 +20,7 @@
         <form id="form-ingreso-rut" onsubmit="validarRutAcceso(event)">
             <div class="input-grupo-registro">
                 <label for="rut-alumno">RUT del Usuario:</label>
-                <input type="text" id="rut-alumno" required placeholder="Ej: 12.345.678-9 o 12345678-9">
+                <input type="text" id="rut-alumno" required placeholder="Ej: 12.345.678-9">
             </div>
             <button type="submit" class="btn btn-guardar" style="width: 100%; margin-top: 15px; font-size: 16px;">Ingresar a las reservas</button>
         </form>
@@ -45,8 +45,8 @@
                 <div class="clase">Entrenamiento</div>
                 <div class="cupos">Cupos disponibles: <span id="cupos-7:00">10 / 10</span></div>
                 <div class="acciones">
-                    <button class="btn btn-reservar" onclick="abrirFormulario('7:00 AM')">Reservar Cupo</button>
-                    <button class="btn btn-cancelar" onclick="cancelarCupoDirecto('7:00 AM')">Cancelar Cupo</button>
+                    <button class="btn btn-reservar" onclick="abrirFormulario('7:00')">Reservar Cupo</button>
+                    <button class="btn btn-cancelar" onclick="cancelarCupoDirecto('7:00')">Cancelar Cupo</button>
                 </div>
             </div>
 
@@ -55,8 +55,8 @@
                 <div class="clase">Entrenamiento</div>
                 <div class="cupos">Cupos disponibles: <span id="cupos-8:15">10 / 10</span></div>
                 <div class="acciones">
-                    <button class="btn btn-reservar" onclick="abrirFormulario('8:15 AM')">Reservar Cupo</button>
-                    <button class="btn btn-cancelar" onclick="cancelarCupoDirecto('8:15 AM')">Cancelar Cupo</button>
+                    <button class="btn btn-reservar" onclick="abrirFormulario('8:15')">Reservar Cupo</button>
+                    <button class="btn btn-cancelar" onclick="cancelarCupoDirecto('8:15')">Cancelar Cupo</button>
                 </div>
             </div>
 
@@ -65,8 +65,8 @@
                 <div class="clase">Entrenamiento</div>
                 <div class="cupos">Cupos disponibles: <span id="cupos-9:30">10 / 10</span></div>
                 <div class="acciones">
-                    <button class="btn btn-reservar" onclick="abrirFormulario('9:30 AM')">Reservar Cupo</button>
-                    <button class="btn btn-cancelar" onclick="cancelarCupoDirecto('9:30 AM')">Cancelar Cupo</button>
+                    <button class="btn btn-reservar" onclick="abrirFormulario('9:30')">Reservar Cupo</button>
+                    <button class="btn btn-cancelar" onclick="cancelarCupoDirecto('9:30')">Cancelar Cupo</button>
                 </div>
             </div>
 
@@ -75,8 +75,8 @@
                 <div class="clase" style="color: #22c55e;">Entrenamiento Adulto Mayor</div>
                 <div class="cupos">Cupos disponibles: <span id="cupos-11:00">10 / 10</span></div>
                 <div class="acciones">
-                    <button class="btn btn-reservar" onclick="abrirFormulario('11:00 AM')">Reservar Cupo</button>
-                    <button class="btn btn-cancelar" onclick="cancelarCupoDirecto('11:00 AM')">Cancelar Cupo</button>
+                    <button class="btn btn-reservar" onclick="abrirFormulario('11:00')">Reservar Cupo</button>
+                    <button class="btn btn-cancelar" onclick="cancelarCupoDirecto('11:00')">Cancelar Cupo</button>
                 </div>
             </div>
 
@@ -85,8 +85,8 @@
                 <div class="clase">Entrenamiento</div>
                 <div class="cupos">Cupos disponibles: <span id="cupos-14:30">10 / 10</span></div>
                 <div class="acciones">
-                    <button class="btn btn-reservar" onclick="abrirFormulario('14:30 PM')">Reservar Cupo</button>
-                    <button class="btn btn-cancelar" onclick="cancelarCupoDirecto('14:30 PM')">Cancelar Cupo</button>
+                    <button class="btn btn-reservar" onclick="abrirFormulario('14:30')">Reservar Cupo</button>
+                    <button class="btn btn-cancelar" onclick="cancelarCupoDirecto('14:30')">Cancelar Cupo</button>
                 </div>
             </div>
 
@@ -98,14 +98,7 @@
             <p>Horario: <strong id="hora-seleccionada">--:--</strong></p>
             
             <form id="form-registro" onsubmit="confirmarReserva(event)">
-                <div class="input-grupo-registro">
-                    <label for="nombre-usuario">Nombre Completo:</label>
-                    <input type="text" id="nombre-usuario" required placeholder="Ej: Juan Pérez">
-                </div>
-                <div class="input-grupo-registro">
-                    <label for="email-usuario">Correo Electrónico:</label>
-                    <input type="email" id="email-usuario" required placeholder="ejemplo@correo.com">
-                </div>
+                <p style="color: #e1e1e6; font-size: 14px; margin: 15px 0;">Tu reserva quedará asociada automáticamente a tu RUT.</p>
                 <button type="submit" class="btn btn-guardar">Confirmar mi Reserva</button>
             </form>
         </section>
