@@ -13,7 +13,7 @@
         <p>Asegura tu lugar. ¡No te quedes fuera!</p>
     </header>
 
-    <section id="pantalla-rut" class="tarjeta-registro" style="max-width: 450px; margin: 60px auto; display: block; text-align: center;">
+    <section id="pantalla-rut" class="tarjeta-registro" style="max-width: 450px; margin: 60px auto; text-align: center;">
         <h2>Acceso Usuarios</h2>
         <p style="color: #7c7c8a; margin-bottom: 20px;">Por favor, ingresa tu RUT para verificar tu membresía activa.</p>
         
@@ -26,14 +26,14 @@
         </form>
     </section>
 
-    <main id="contenido-reserva-box" class="contenedor-horarios" style="display: none; max-width: 900px; margin: 0 auto; padding: 20px;">
+    <main id="contenido-reserva-box" class="contenedor-horarios" style="display: none;">
         
         <section class="tarjeta-registro" style="max-width: 500px; margin: 0 auto 30px auto; text-align: center;">
             <h2 style="color: #ffbc0d; margin-bottom: 5px;">📅 Elige tu Día</h2>
             <p style="font-size: 13px; color: #7c7c8a; margin-bottom: 15px;">Selecciona la fecha en la que deseas entrenar.</p>
             
-            <div class="input-grupo-registro" style="margin-bottom: 5px;">
-                <input type="date" id="selector-fecha-reserva" onchange="cambiarFechaAgenda()" style="font-size: 16px; text-align: center; padding: 10px; background: #2c2c2e; color: white; border: 1px solid #3a3a3c; border-radius: 4px; width: 100%; max-width: 250px;">
+            <div class="input-grupo-registro" style="align-items: center; margin-bottom: 5px;">
+                <input type="date" id="selector-fecha-reserva" onchange="cambiarFechaAgenda()" style="font-size: 16px; text-align: center; max-width: 250px;">
             </div>
             <div id="estado-fecha-texto" style="font-size: 13px; font-weight: bold; margin-top: 8px;"></div>
         </section>
@@ -43,63 +43,63 @@
             <div class="tarjeta-horario">
                 <div class="hora">07:00 AM</div>
                 <div class="clase">Entrenamiento</div>
-                <div class="cupos">Cupos disponibles: <span id="cupos-7:00">10 / 10</span></div>
+                <div class="cupos">Cupos: <span id="cupos-7:00">10 / 10</span></div>
                 <div class="acciones">
-                    <button class="btn btn-reservar" onclick="abrirFormulario('7:00')">Reservar Cupo</button>
-                    <button class="btn btn-cancelar" onclick="cancelarCupoDirecto('7:00')">Cancelar Cupo</button>
+                    <button class="btn btn-reservar" onclick="abrirFormulario('7:00')">Reservar</button>
+                    <button class="btn btn-cancelar" onclick="cancelarCupoDirecto('7:00')">Cancelar</button>
                 </div>
             </div>
 
             <div class="tarjeta-horario">
                 <div class="hora">08:15 AM</div>
                 <div class="clase">Entrenamiento</div>
-                <div class="cupos">Cupos disponibles: <span id="cupos-8:15">10 / 10</span></div>
+                <div class="cupos">Cupos: <span id="cupos-8:15">10 / 10</span></div>
                 <div class="acciones">
-                    <button class="btn btn-reservar" onclick="abrirFormulario('8:15')">Reservar Cupo</button>
-                    <button class="btn btn-cancelar" onclick="cancelarCupoDirecto('8:15')">Cancelar Cupo</button>
+                    <button class="btn btn-reservar" onclick="abrirFormulario('8:15')">Reservar</button>
+                    <button class="btn btn-cancelar" onclick="cancelarCupoDirecto('8:15')">Cancelar</button>
                 </div>
             </div>
 
             <div class="tarjeta-horario">
                 <div class="hora">09:30 AM</div>
                 <div class="clase">Entrenamiento</div>
-                <div class="cupos">Cupos disponibles: <span id="cupos-9:30">10 / 10</span></div>
+                <div class="cupos">Cupos: <span id="cupos-9:30">10 / 10</span></div>
                 <div class="acciones">
-                    <button class="btn btn-reservar" onclick="abrirFormulario('9:30')">Reservar Cupo</button>
-                    <button class="btn btn-cancelar" onclick="cancelarCupoDirecto('9:30')">Cancelar Cupo</button>
+                    <button class="btn btn-reservar" onclick="abrirFormulario('9:30')">Reservar</button>
+                    <button class="btn btn-cancelar" onclick="cancelarCupoDirecto('9:30')">Cancelar</button>
                 </div>
             </div>
 
             <div class="tarjeta-horario">
                 <div class="hora">11:00 AM</div>
                 <div class="clase" style="color: #22c55e;">Entrenamiento Adulto Mayor</div>
-                <div class="cupos">Cupos disponibles: <span id="cupos-11:00">10 / 10</span></div>
+                <div class="cupos">Cupos: <span id="cupos-11:00">10 / 10</span></div>
                 <div class="acciones">
-                    <button class="btn btn-reservar" onclick="abrirFormulario('11:00')">Reservar Cupo</button>
-                    <button class="btn btn-cancelar" onclick="cancelarCupoDirecto('11:00')">Cancelar Cupo</button>
+                    <button class="btn btn-reservar" onclick="abrirFormulario('11:00')">Reservar</button>
+                    <button class="btn btn-cancelar" onclick="cancelarCupoDirecto('11:00')">Cancelar</button>
                 </div>
             </div>
 
             <div class="tarjeta-horario">
                 <div class="hora">14:30 PM</div>
                 <div class="clase">Entrenamiento</div>
-                <div class="cupos">Cupos disponibles: <span id="cupos-14:30">10 / 10</span></div>
+                <div class="cupos">Cupos: <span id="cupos-14:30">10 / 10</span></div>
                 <div class="acciones">
-                    <button class="btn btn-reservar" onclick="abrirFormulario('14:30')">Reservar Cupo</button>
-                    <button class="btn btn-cancelar" onclick="cancelarCupoDirecto('14:30')">Cancelar Cupo</button>
+                    <button class="btn btn-reservar" onclick="abrirFormulario('14:30')">Reservar</button>
+                    <button class="btn btn-cancelar" onclick="cancelarCupoDirecto('14:30')">Cancelar</button>
                 </div>
             </div>
 
         </div>
 
-        <section id="seccion-registro" class="tarjeta-registro" style="display: none; margin-top: 30px;">
+        <section id="seccion-registro" class="tarjeta-registro" style="display: none; max-width: 500px; margin: 30px auto; text-align: center;">
             <h2>Datos de la Reserva</h2>
-            <p>Día elegido: <strong id="fecha-seleccionada-texto" style="color: #ffbc0d;">--/--/----</strong></p>
+            <p>Día: <strong id="fecha-seleccionada-texto" style="color: #ffbc0d;">--/--/----</strong></p>
             <p>Horario: <strong id="hora-seleccionada">--:--</strong></p>
             
             <form id="form-registro" onsubmit="confirmarReserva(event)">
-                <p style="color: #e1e1e6; font-size: 14px; margin: 15px 0;">Tu reserva quedará asociada automáticamente a tu RUT.</p>
-                <button type="submit" class="btn btn-guardar">Confirmar mi Reserva</button>
+                <p style="color: #e1e1e6; font-size: 14px; margin: 15px 0;">Tu reserva quedará asociada a tu RUT.</p>
+                <button type="submit" class="btn btn-guardar" style="width: 100%;">Confirmar mi Reserva</button>
             </form>
         </section>
 

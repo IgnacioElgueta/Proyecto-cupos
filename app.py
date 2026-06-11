@@ -393,6 +393,36 @@ def admin_agregar_rut():
     guardar_datos(datos)
     return jsonify({"success": True, "message": f"Alumno {nuevo_rut} registrado con éxito."})
 
+# --- NUEVO ENDPOINT PARA EDITAR RUT EXISTENTE ---
+@app.route('/api/admin/editar-rut', methods=['POST'])
+def admin_editar_rut():
+    data = request.json
+    rut_a_editar = formatear_rut(data.get('rut'))
+    nuevo_nombre = str(data.get('nombre', '')).strip()
+    nuevo_email = str(data.get('email', '')).strip()
+    
+    datos = cargar_datos()
+    editado = False
+    
+    for r in datos["listaRuts"]:
+        rut_guardado = formatear_rut(r.get("rut") if isinstance(r, dict) else r)
+        if rut_guardado == rut_a_editar:
+            if isinstance(r, dict):
+                r["nombre"] = nuevo_nombre
+                r["email"] = nuevo_email
+            else:
+                # Si por alguna razón sigue siendo un string, lo convertimos a dict
+                idx = datos["listaRuts"].index(r)
+                datos["listaRuts"][idx] = {"rut": rut_guardado, "nombre": nuevo_nombre, "email": nuevo_email}
+            editado = True
+            break
+            
+    if editado:
+        guardar_datos(datos)
+        return jsonify({"success": True, "message": f"Datos del alumno {rut_a_editar} actualizados con éxito."})
+        
+    return jsonify({"success": False, "message": "RUT no encontrado en el sistema."}), 404
+
 @app.route('/api/admin/eliminar-rut', methods=['POST'])
 def admin_eliminar_rut():
     data = request.json
@@ -408,7 +438,7 @@ def admin_eliminar_rut():
             
     return jsonify({"success": False, "message": "RUT no encontrado."}), 404
 
-# --- NUEVA FUNCIÓN: RADAR DE ALUMNOS ---
+# --- NUEVA FUNCIÓN: RADAR DE ALUMNOS (AHORA CON NOMBRE) ---
 @app.route('/api/admin/radar', methods=['POST'])
 def radar_alumno():
     data = request.json
@@ -416,8 +446,16 @@ def radar_alumno():
     
     datos = cargar_datos()
     reservas_encontradas = []
+    nombre_alumno = "Alumno no encontrado"
     
-    # Recorremos todos los días de la agenda buscando a la persona
+    # 1. Buscamos el nombre oficial del alumno en la lista de RUTs
+    for r in datos.get("listaRuts", []):
+        rut_guardado = formatear_rut(r.get("rut") if isinstance(r, dict) else r)
+        if rut_guardado == rut_buscado:
+            nombre_alumno = r.get("nombre", "Usuario Box") if isinstance(r, dict) else "Usuario Box"
+            break
+    
+    # 2. Recorremos todos los días de la agenda buscando a la persona
     for fecha, dia_data in datos.get("agendaDias", {}).items():
         if "personas" in dia_data:
             for persona in dia_data["personas"]:
@@ -430,7 +468,11 @@ def radar_alumno():
     # Ordenamos por fecha para que sea más legible en el panel
     reservas_encontradas.sort(key=lambda x: x["fecha"])
     
-    return jsonify({"success": True, "reservas": reservas_encontradas})
+    return jsonify({
+        "success": True, 
+        "nombre": nombre_alumno,
+        "reservas": reservas_encontradas
+    })
 
 if __name__ == '__main__':
     puerto = int(os.environ.get("PORT", 5000))

@@ -49,7 +49,6 @@ footer {
    ========================================================================== */
 .contenedor-horarios {
     width: 100%;
-    /* Se amplió el max-width para acomodar mejor la grilla de 5 tarjetas */
     max-width: 1100px; 
     display: flex;
     flex-direction: column;
@@ -252,7 +251,6 @@ input[type="date"]:focus {
     margin-bottom: 25px;
 }
 
-/* Cambiado ligeramente para dar espacio armónico a paneles complejos */
 .admin-grid {
     display: grid;
     grid-template-columns: 1fr 1.2fr 1.8fr;
@@ -308,7 +306,7 @@ input[type="date"]:focus {
 
 /* Estilos de la Lista de Alumnos */
 #lista-ruts-contenedor {
-    max-height: 250px; /* Aumentado para ver mejor la lista con datos extra */
+    max-height: 250px; 
     overflow-y: auto;
     background: #121214;
     padding: 5px;
@@ -353,45 +351,7 @@ input[type="date"]:focus {
 }
 
 /* ==========================================================================
-   5. TABLA DE ASISTENCIA DIARIA DEL ADMINISTRADOR
-   ========================================================================== */
-.tabla-contenedor {
-    background-color: #121214;
-    border-radius: 8px;
-    padding: 10px;
-    max-height: 350px; /* Aumentado para evitar scroll excesivo con los 5 bloques */
-    overflow-y: auto;
-}
-
-table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 0.9rem;
-    text-align: left;
-}
-
-th {
-    color: #1919e6;
-    padding: 10px 8px;
-    border-bottom: 1px solid #29292e;
-}
-
-td {
-    padding: 10px 8px;
-    color: #e1e1e6;
-    border-bottom: 1px solid #1a1a1e;
-}
-
-.tabla-contenedor table td button {
-    transition: background-color 0.2s ease;
-}
-
-.tabla-contenedor table td button:hover {
-    background-color: #c53030 !important;
-}
-
-/* ==========================================================================
-   6. DISEÑO RESPONSIVO (ADAPTACIÓN A PANTALLAS)
+   5. DISEÑO RESPONSIVO (ADAPTACIÓN A PANTALLAS)
    ========================================================================== */
 @media (max-width: 1150px) {
     .admin-grid {
@@ -415,84 +375,4 @@ td {
     .hora {
         font-size: 1.5rem;
     }
-}
-
-/* ==========================================================================
-   7. NUEVOS COMPONENTES: RADAR DE ALUMNOS Y DETALLES EN LISTAS (INYECTADO)
-   ========================================================================== */
-.radar-buscador {
-    display: flex;
-    gap: 8px;
-    margin-bottom: 15px;
-}
-
-.radar-buscador input {
-    flex: 1;
-    background-color: #1a1a1e;
-    border: 1px solid #29292e;
-    color: white;
-    padding: 10px;
-    border-radius: 6px;
-    font-size: 0.9rem;
-}
-
-.radar-buscador input:focus {
-    border-color: #1919e6;
-    outline: none;
-}
-
-.radar-resultados {
-    max-height: 150px;
-    overflow-y: auto;
-    background-color: #1a1a1e;
-    border-radius: 6px;
-    padding: 5px;
-    border: 1px solid #29292e;
-}
-
-.radar-item {
-    display: flex;
-    justify-content: space-between;
-    padding: 8px;
-    font-size: 0.85rem;
-    border-bottom: 1px solid #121214;
-}
-
-.radar-item:last-child {
-    border-bottom: none;
-}
-
-.radar-fecha {
-    color: #e1e1e6;
-    font-weight: 500;
-}
-
-.radar-hora {
-    color: #00ff88;
-    font-weight: bold;
-}
-
-.radar-vacio {
-    text-align: center;
-    color: #7c7c8a;
-    font-size: 0.85rem;
-    padding: 15px 0;
-}
-
-/* Bloque contenedor para la info interna de la lista de alumnos activos */
-.alumno-info-bloque {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-}
-
-.alumno-nombre-txt {
-    font-weight: bold;
-    color: #ffffff;
-    font-size: 0.9rem;
-}
-
-.alumno-subdatos-txt {
-    font-size: 0.75rem;
-    color: #a8a8b3;
 }

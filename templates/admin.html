@@ -32,44 +32,43 @@
         <section id="panel-admin-box" class="panel-admin" style="display: none;">
             <div class="admin-header">
                 <h2>Control Global del Box</h2>
-                <button class="btn-cerrar-admin" onclick="cerrarSesionAdmin()" style="background: #f74141; color: white; padding: 8px 15px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">❌ Salir al Inicio</button>
+                <button class="btn btn-cancelar" onclick="cerrarSesionAdmin()" style="width: auto; padding: 8px 15px;">❌ Salir al Inicio</button>
             </div>
             
             <div class="admin-grid">
                 
                 <div class="subpanel">
                     <h3>Capacidad de Clases</h3>
-                    <p style="font-size: 13px; color: #7c7c8a; margin-bottom: 15px;">Establece los cupos iniciales estándar para los días.</p>
+                    <p style="font-size: 13px; color: #7c7c8a; margin-bottom: 15px;">Establece los cupos iniciales estándar.</p>
                     <div class="control-cupos">
-                        <div class="input-grupo" style="margin-bottom: 12px;">
+                        <div class="input-grupo">
                             <label>07:00 AM:</label>
                             <input type="number" id="input-cupos-7_00" value="10" min="0">
                         </div>
-                        <div class="input-grupo" style="margin-bottom: 12px;">
+                        <div class="input-grupo">
                             <label>08:15 AM:</label>
                             <input type="number" id="input-cupos-8_15" value="10" min="0">
                         </div>
-                        <div class="input-grupo" style="margin-bottom: 12px;">
+                        <div class="input-grupo">
                             <label>09:30 AM:</label>
                             <input type="number" id="input-cupos-9_30" value="10" min="0">
                         </div>
-                        <div class="input-grupo" style="margin-bottom: 12px;">
-                            <label>11:00 AM (Adulto Mayor):</label>
+                        <div class="input-grupo">
+                            <label>11:00 AM (Mayor):</label>
                             <input type="number" id="input-cupos-11_00" value="10" min="0">
                         </div>
-                        <div class="input-grupo" style="margin-bottom: 20px;">
+                        <div class="input-grupo">
                             <label>14:30 PM:</label>
                             <input type="number" id="input-cupos-14_30" value="10" min="0">
                         </div>
-                        <button onclick="guardarCuposEstandarAdmin()" class="btn btn-guardar" style="width: 100%; font-size: 13px; padding: 10px;">💾 Guardar Cupos</button>
+                        <button onclick="guardarCuposEstandarAdmin()" class="btn btn-guardar" style="width: 100%; font-size: 13px;">💾 Guardar Cupos</button>
                     </div>
                 </div>
 
                 <div class="subpanel" style="display: flex; flex-direction: column; gap: 20px;">
                     <div style="border-bottom: 1px solid #3a3a3c; padding-bottom: 20px;">
                         <h3>Configurar Calendario</h3>
-                        <p style="font-size: 13px; color: #7c7c8a; margin-bottom: 15px;">Habilita o bloquea rangos de fechas.</p>
-                        
+                        <p style="font-size: 13px; color: #7c7c8a; margin-bottom: 15px;">Habilita o bloquea fechas.</p>
                         <div style="display: flex; gap: 10px; margin-bottom: 15px;">
                             <div style="flex: 1;">
                                 <label style="font-size: 12px; display: block; margin-bottom: 4px;">Desde:</label>
@@ -80,59 +79,35 @@
                                 <input type="date" id="admin-fecha-fin" style="width: 100%; padding: 6px; background: #2c2c2e; border: 1px solid #3a3a3c; color: white; border-radius: 4px;">
                             </div>
                         </div>
-                        
                         <div style="display: flex; gap: 10px;">
-                            <button onclick="configurarCalendarioAdmin('habilitar')" style="flex: 1; background: #22c55e; color: white; border: none; padding: 8px; font-weight: bold; border-radius: 4px; cursor: pointer;">🔓 Habilitar</button>
-                            <button onclick="configurarCalendarioAdmin('deshabilitar')" style="flex: 1; background: #ef4444; color: white; border: none; padding: 8px; font-weight: bold; border-radius: 4px; cursor: pointer;">🔒 Bloquear</button>
+                            <button onclick="configurarCalendarioAdmin('habilitar')" style="flex: 1; background: #22c55e; color: white; border: none; padding: 8px; border-radius: 4px; cursor: pointer;">🔓 Habilitar</button>
+                            <button onclick="configurarCalendarioAdmin('deshabilitar')" style="flex: 1; background: #ef4444; color: white; border: none; padding: 8px; border-radius: 4px; cursor: pointer;">🔒 Bloquear</button>
                         </div>
                     </div>
 
                     <div>
                         <h3>Alumnos Autorizados</h3>
                         <div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 15px; background: #242426; padding: 12px; border-radius: 6px; border: 1px solid #3a3a3c;">
-                            <input type="text" id="input-nuevo-rut" placeholder="RUT (Ej: 12345678-9 sin preocuparse de puntos)" style="padding: 8px; background: #1c1c1e; border: 1px solid #3a3a3c; color: white; border-radius: 4px; width: 100%;">
-                            <input type="text" id="input-nuevo-nombre" placeholder="Nombre completo" style="padding: 8px; background: #1c1c1e; border: 1px solid #3a3a3c; color: white; border-radius: 4px; width: 100%;">
-                            <input type="email" id="input-nuevo-email" placeholder="Correo electrónico" style="padding: 8px; background: #1c1c1e; border: 1px solid #3a3a3c; color: white; border-radius: 4px; width: 100%;">
-                            <button onclick="agregarRutAdmin()" style="background: #1919e6; color: white; border: none; padding: 8px 12px; font-weight: bold; border-radius: 4px; cursor: pointer; margin-top: 5px;">➕ Añadir Alumno</button>
+                            <input type="text" id="input-nuevo-rut" placeholder="RUT (Ej: 12345678-9)" style="padding: 8px; background: #1c1c1e; border: 1px solid #3a3a3c; color: white; border-radius: 4px;">
+                            <input type="text" id="input-nuevo-nombre" placeholder="Nombre completo" style="padding: 8px; background: #1c1c1e; border: 1px solid #3a3a3c; color: white; border-radius: 4px;">
+                            <input type="email" id="input-nuevo-email" placeholder="Correo electrónico" style="padding: 8px; background: #1c1c1e; border: 1px solid #3a3a3c; color: white; border-radius: 4px;">
+                            <button onclick="agregarRutAdmin()" class="btn btn-reservar" style="margin-top: 5px;">➕ Añadir Alumno</button>
                         </div>
                         <ul id="lista-ruts-contenedor">
-                            <li style="text-align: center; color: #7c7c8a; padding: 10px; font-size: 13px;">Cargando...</li>
+                            <li style="text-align: center; color: #7c7c8a; font-size: 13px;">Cargando...</li>
                         </ul>
                     </div>
                 </div>
 
                 <div style="display: flex; flex-direction: column; gap: 20px;">
                     <div class="subpanel">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px;">
-                            <h3 style="margin: 0; border: none; padding: 0;">Asistencia Diaria</h3>
-                            <input type="date" id="selector-fecha-admin" onchange="cambiarFechaAdminAsistencia()" style="padding: 5px; background: #2c2c2e; border: 1px solid #3a3a3c; color: white; border-radius: 4px; font-size: 13px;">
-                        </div>
-                        
-                        <div class="tabla-contenedor">
-                            <table>
-                                <thead>
-                                    <tr>
-                                        <th>Hora</th>
-                                        <th>Nombre</th>
-                                        <th style="text-align: center;">Acción</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="lista-registrados">
-                                    <tr id="sin-registros">
-                                        <td colspan="3" style="text-align: center; color: #7c7c8a; padding: 15px;">Selecciona una fecha</td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-
-                    <div class="subpanel">
                         <h3>Radar de Alumnos</h3>
                         <p style="font-size: 13px; color: #7c7c8a; margin-bottom: 15px;">Busca las reservas de un alumno.</p>
                         <div style="display: flex; gap: 8px; margin-bottom: 15px;">
                             <input type="text" id="input-radar-rut" placeholder="RUT del alumno" style="flex: 1; padding: 8px; background: #1c1c1e; border: 1px solid #3a3a3c; color: white; border-radius: 4px;">
-                            <button onclick="buscarReservasRadar()" style="background: #1919e6; color: white; border: none; padding: 8px 12px; font-weight: bold; border-radius: 4px; cursor: pointer;">🔍 Buscar</button>
+                            <button onclick="buscarReservasRadar()" class="btn btn-reservar" style="padding: 8px 12px;">🔍 Buscar</button>
                         </div>
+                        <p id="radar-nombre-resultado" style="font-size: 15px; font-weight: bold; color: #22c55e; margin-bottom: 10px; display: none; text-align: center;"></p>
                         <ul id="lista-radar-resultados" style="list-style: none; max-height: 180px; overflow-y: auto; background: #121214; padding: 10px; border-radius: 4px; border: 1px solid #29292e;">
                             <li style="text-align: center; color: #7c7c8a; font-size: 13px;">Ingresa un RUT para escanear</li>
                         </ul>
@@ -142,6 +117,28 @@
             </div>
         </section>
     </main>
+
+    <div id="modal-editar-rut" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 1000; justify-content: center; align-items: center;">
+        <div style="background: #242426; padding: 25px; border-radius: 8px; border: 1px solid #3a3a3c; width: 90%; max-width: 400px; box-shadow: 0 4px 15px rgba(0,0,0,0.5);">
+            <h3 style="margin-top: 0; margin-bottom: 5px;">Editar Datos del Alumno</h3>
+            <p id="edit-rut-display" style="color: #4ade80; margin-bottom: 20px; font-size: 14px; font-weight: bold;"></p>
+            
+            <input type="hidden" id="edit-rut-original">
+            
+            <div style="margin-bottom: 15px;">
+                <label style="display: block; font-size: 13px; margin-bottom: 5px; color: #e4e4e7;">Nombre completo:</label>
+                <input type="text" id="edit-nombre" style="width: 100%; padding: 10px; background: #1c1c1e; border: 1px solid #3a3a3c; color: white; border-radius: 4px;">
+            </div>
+            <div style="margin-bottom: 20px;">
+                <label style="display: block; font-size: 13px; margin-bottom: 5px; color: #e4e4e7;">Correo electrónico:</label>
+                <input type="email" id="edit-email" style="width: 100%; padding: 10px; background: #1c1c1e; border: 1px solid #3a3a3c; color: white; border-radius: 4px;">
+            </div>
+            <div style="display: flex; gap: 10px;">
+                <button onclick="guardarEdicionRut()" class="btn" style="background: #22c55e; color: white;">Guardar</button>
+                <button onclick="cerrarModalEditarRut()" class="btn btn-cancelar">Cancelar</button>
+            </div>
+        </div>
+    </div>
 
     <script src="/static/script.js"></script>
 </body>

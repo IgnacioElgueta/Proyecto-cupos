@@ -19,32 +19,15 @@ document.addEventListener("DOMContentLoaded", () => {
     const selectorReserva = document.getElementById("selector-fecha-reserva");
     if (selectorReserva) selectorReserva.value = hoyStr;
 
-    const selectorAdmin = document.getElementById("selector-fecha-admin");
-    if (selectorAdmin) selectorAdmin.value = hoyStr;
-
-    // Activar el formateador de RUT en el acceso de alumnos
-    const inputRut = document.getElementById("rut-alumno");
-    if (inputRut) {
-        inputRut.addEventListener("input", (e) => {
-            e.target.value = formatearRUT(e.target.value);
-        });
-    }
-
-    // Activar el formateador de RUT en el Radar del Admin
-    const inputRadarRut = document.getElementById("input-radar-rut");
-    if (inputRadarRut) {
-        inputRadarRut.addEventListener("input", (e) => {
-            e.target.value = formatearRUT(e.target.value);
-        });
-    }
-
-    // ¡NUEVO! Activar el formateador de RUT al registrar un nuevo alumno
-    const inputNuevoRut = document.getElementById("input-nuevo-rut");
-    if (inputNuevoRut) {
-        inputNuevoRut.addEventListener("input", (e) => {
-            e.target.value = formatearRUT(e.target.value);
-        });
-    }
+    const inputsRut = ["rut-alumno", "input-radar-rut", "input-nuevo-rut"];
+    inputsRut.forEach(id => {
+        const input = document.getElementById(id);
+        if (input) {
+            input.addEventListener("input", (e) => {
+                e.target.value = formatearRUT(e.target.value);
+            });
+        }
+    });
 
     cargarDatosDelServidor();
 });
@@ -64,12 +47,12 @@ function cargarDatosDelServidor() {
             datosGlobales = data; 
             actualizarInterfazHorariosAlumno();
             actualizarListaRutsDom(data.listaRuts);
-            actualizarTablaAdminAsistencia();
             actualizarInputsCuposAdmin();
         })
         .catch(error => console.error("Error al conectar con Python:", error));
 }
 
+// --- ZONA ALUMNO ---
 function validarRutAcceso(event) {
     event.preventDefault();
     const rutInput = document.getElementById("rut-alumno").value;
@@ -84,13 +67,13 @@ function validarRutAcceso(event) {
         if (data.success) {
             rutUsuarioConectado = rutInput; 
             document.getElementById("pantalla-rut").style.display = "none";
-            document.getElementById("contenido-reserva-box").style.display = "block";
+            document.getElementById("contenido-reserva-box").style.display = "flex";
             actualizarInterfazHorariosAlumno();
         } else {
             alert(data.message);
         }
     })
-    .catch(error => alert("El RUT ingresado no está autorizado."));
+    .catch(error => alert("Error de conexión."));
 }
 
 function cambiarFechaAgenda() {
@@ -100,7 +83,6 @@ function cambiarFechaAgenda() {
 
 function actualizarInterfazHorariosAlumno() {
     if (!datosGlobales) return;
-
     const selector = document.getElementById("selector-fecha-reserva");
     if (!selector) return; 
 
@@ -113,17 +95,22 @@ function actualizarInterfazHorariosAlumno() {
     const estaHabilitada = datosGlobales.fechasHabilitadas.includes(fechaElegida);
     const horas = ["7:00", "8:15", "9:30", "11:00", "14:30"];
 
-    if (estaHabilitada && datosGlobales.agendaDias[fechaElegida]) {
+    if (estaHabilitada) {
         textoEstado.innerText = "🔓 Agenda disponible";
         textoEstado.style.color = "#22c55e";
         contenedorTarjetas.style.opacity = "1";
         contenedorTarjetas.style.pointerEvents = "auto";
 
-        const diaData = datosGlobales.agendaDias[fechaElegida];
+        const diaData = datosGlobales.agendaDias[fechaElegida] || {};
         horas.forEach(h => {
             const el = document.getElementById(`cupos-${h}`);
-            if (el && diaData[h]) {
-                el.innerText = `${diaData[h].disponibles} / ${diaData[h].totales}`;
+            if (el) {
+                const cuposBase = datosGlobales.cuposBase[h] || 10;
+                if (diaData[h]) {
+                    el.innerText = `${diaData[h].disponibles} / ${diaData[h].totales}`;
+                } else {
+                    el.innerText = `${cuposBase} / ${cuposBase}`;
+                }
             }
         });
     } else {
@@ -150,26 +137,19 @@ function abrirFormulario(hora) {
 
 function confirmarReserva(event) {
     event.preventDefault();
-
     const fechaElegida = document.getElementById("selector-fecha-reserva").value;
 
     fetch('/api/reservar', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-            fecha: fechaElegida,
-            hora: horaEnProceso,
-            rut: rutUsuarioConectado
-        })
+        body: JSON.stringify({ fecha: fechaElegida, hora: horaEnProceso, rut: rutUsuarioConectado })
     })
     .then(response => response.json())
     .then(data => {
+        alert(data.message);
         if (data.success) {
-            alert(data.message);
             document.getElementById("seccion-registro").style.display = "none";
             cargarDatosDelServidor();
-        } else {
-            alert(data.message);
         }
     })
     .catch(error => alert("Error al procesar la reserva."));
@@ -181,26 +161,17 @@ function cancelarCupoDirecto(hora) {
     fetch('/api/cancelar', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-            fecha: fechaElegida, 
-            hora: hora,
-            rut: rutUsuarioConectado
-        })
+        body: JSON.stringify({ fecha: fechaElegida, hora: hora, rut: rutUsuarioConectado })
     })
     .then(response => response.json())
     .then(data => {
-        if (data.success) {
-            alert(data.message);
-            cargarDatosDelServidor();
-        } else {
-            alert(data.message);
-        }
+        alert(data.message);
+        if (data.success) cargarDatosDelServidor();
     })
     .catch(error => alert("Error al cancelar el cupo."));
 }
 
 // --- PANEL ADMIN ---
-
 function autenticarAdmin(event) {
     event.preventDefault();
     const usuarioInput = document.getElementById("admin-usuario").value;
@@ -221,68 +192,11 @@ function autenticarAdmin(event) {
             alert(data.message);
         }
     })
-    .catch(error => alert("Credenciales incorrectas."));
+    .catch(error => alert("Error de conexión."));
 }
 
 function cerrarSesionAdmin() {
     window.location.href = "/";
-}
-
-function cambiarFechaAdminAsistencia() {
-    actualizarTablaAdminAsistencia();
-}
-
-function actualizarTablaAdminAsistencia() {
-    const tbody = document.getElementById("lista-registrados");
-    if (!tbody || !datosGlobales) return;
-
-    tbody.innerHTML = "";
-    const fechaFiltro = document.getElementById("selector-fecha-admin").value;
-
-    if (!fechaFiltro) return;
-
-    const diaData = datosGlobales.agendaDias[fechaFiltro];
-    
-    if (!diaData || !diaData.personas || diaData.personas.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="3" style="text-align: center; color: #7c7c8a; padding: 15px;">No hay alumnos inscritos.</td></tr>`;
-        return;
-    }
-
-    diaData.personas.forEach(persona => {
-        const fila = document.createElement("tr");
-        fila.style.borderBottom = "1px solid #2c2c2e";
-        fila.innerHTML = `
-            <td style="padding: 8px;"><strong>${persona.hora}</strong></td>
-            <td style="padding: 8px;">${persona.nombre} <br><span style="font-size: 11px; color:#7c7c8a;">${persona.rut}</span></td>
-            <td style="padding: 8px; text-align: center;">
-                <button onclick="eliminarUsuarioAdmin('${persona.rut}', '${persona.hora}')" style="background: #ef4444; color: white; border: none; padding: 4px 10px; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: bold;">Remover</button>
-            </td>
-        `;
-        tbody.appendChild(fila);
-    });
-}
-
-function eliminarUsuarioAdmin(rut, hora) {
-    const fechaFiltro = document.getElementById("selector-fecha-admin").value;
-    if (!confirm(`¿Eliminar reserva de las ${hora}?`)) return;
-
-    fetch('/api/admin/eliminar-usuario', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ fecha: fechaFiltro, rut: rut, hora: hora })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            alert(data.message);
-            cargarDatosDelServidor();
-        }
-    })
-    .catch(error => alert("Error al intentar eliminar."));
-}
-
-function configureCalendarioAdmin(accion) { // Nota: Corregido nombre según firmas usuales
-    configurarCalendarioAdmin(accion);
 }
 
 function configurarCalendarioAdmin(accion) {
@@ -315,36 +229,22 @@ function agregarRutAdmin() {
     const inputEmail = document.getElementById("input-nuevo-email");
     
     const nuevoRut = inputRut ? inputRut.value.trim() : "";
-    const nuevoNombre = inputNombre ? inputNombre.value.trim() : "";
-    const nuevoEmail = inputEmail ? inputEmail.value.trim() : "";
-
-    if (!nuevoRut) {
-        alert("El campo RUT es obligatorio.");
-        return;
-    }
+    
+    if (!nuevoRut) return alert("El campo RUT es obligatorio.");
 
     fetch('/api/admin/agregar-rut', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-            rut: nuevoRut,
-            nombre: nuevoNombre,
-            email: nuevoEmail
-        })
+        body: JSON.stringify({ rut: nuevoRut, nombre: inputNombre.value.trim(), email: inputEmail.value.trim() })
     })
     .then(response => response.json())
     .then(data => {
+        alert(data.message);
         if (data.success) {
-            alert(data.message);
-            if(inputRut) inputRut.value = "";
-            if(inputNombre) inputNombre.value = "";
-            if(inputEmail) inputEmail.value = "";
+            inputRut.value = ""; inputNombre.value = ""; inputEmail.value = "";
             cargarDatosDelServidor();
-        } else {
-            alert(data.message);
         }
-    })
-    .catch(error => alert("Error al guardar el nuevo alumno."));
+    });
 }
 
 function eliminarRutAdmin(rut) {
@@ -357,10 +257,7 @@ function eliminarRutAdmin(rut) {
     })
     .then(response => response.json())
     .then(data => {
-        if (data.success) {
-            alert(data.message);
-            cargarDatosDelServidor();
-        }
+        if (data.success) cargarDatosDelServidor();
     });
 }
 
@@ -375,49 +272,63 @@ function actualizarListaRutsDom(listaRuts) {
     }
 
     listaRuts.forEach(item => {
-        const rutStr = item.rut;
-        // Ahora combinamos Nombre y Correo electrónico de forma elegante debajo del RUT
-        let infoExtra = "";
-        if (item.nombre || item.email) {
-            infoExtra = `<br><small style="color: #a1a1aa;">${item.nombre || 'Sin nombre'}${item.email ? ' | ' + item.email : ''}</small>`;
-        }
-
+        const infoExtra = (item.nombre || item.email) ? `<br><small style="color: #a1a1aa;">${item.nombre} ${item.email ? '| ' + item.email : ''}</small>` : '';
         const li = document.createElement("li");
-        li.style.display = "flex";
-        li.style.justifyContent = "space-between";
-        li.style.alignItems = "center";
-        li.style.padding = "8px 10px";
-        li.style.borderBottom = "1px solid #3a3a3c";
-        li.style.color = "white";
-        li.style.fontSize = "14px";
-        
         li.innerHTML = `
-            <div>
-                <strong>${rutStr}</strong>
-                ${infoExtra}
+            <div style="flex: 1;"><strong>${item.rut}</strong>${infoExtra}</div>
+            <div style="display: flex; gap: 10px;">
+                <button onclick="abrirModalEditarRut('${item.rut}', '${item.nombre}', '${item.email}')" title="Editar">✏️</button>
+                <button onclick="eliminarRutAdmin('${item.rut}')" style="color: #ef4444;" title="Eliminar">✕</button>
             </div>
-            <button onclick="eliminarRutAdmin('${rutStr}')" style="background: none; border: none; color: #ef4444; cursor: pointer; font-size: 14px; font-weight: bold; padding: 0 5px;">✕</button>
         `;
         contenedor.appendChild(li);
     });
 }
 
-function guardarCuposEstandarAdmin() {
-    const cupos7_00 = document.getElementById("input-cupos-7_00") ? document.getElementById("input-cupos-7_00").value : 10;
-    const cupos8_15 = document.getElementById("input-cupos-8_15") ? document.getElementById("input-cupos-8_15").value : 10;
-    const cupos9_30 = document.getElementById("input-cupos-9_30") ? document.getElementById("input-cupos-9_30").value : 10;
-    const cupos11_00 = document.getElementById("input-cupos-11_00") ? document.getElementById("input-cupos-11_00").value : 10;
-    const cupos14_30 = document.getElementById("input-cupos-14_30") ? document.getElementById("input-cupos-14_30").value : 10;
+// --- EDICIÓN DE RUTS (MODAL) ---
+function abrirModalEditarRut(rut, nombre, email) {
+    document.getElementById('edit-rut-display').innerText = `RUT: ${rut}`;
+    document.getElementById('edit-rut-original').value = rut;
+    document.getElementById('edit-nombre').value = nombre === 'undefined' ? '' : nombre;
+    document.getElementById('edit-email').value = email === 'undefined' ? '' : email;
+    document.getElementById('modal-editar-rut').style.display = "flex";
+}
 
+function cerrarModalEditarRut() {
+    document.getElementById('modal-editar-rut').style.display = "none";
+}
+
+function guardarEdicionRut() {
+    fetch('/api/admin/editar-rut', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            rut: document.getElementById('edit-rut-original').value,
+            nombre: document.getElementById('edit-nombre').value.trim(),
+            email: document.getElementById('edit-email').value.trim()
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            cerrarModalEditarRut();
+            cargarDatosDelServidor(); 
+        } else {
+            alert(data.message || "Error al actualizar.");
+        }
+    });
+}
+
+function guardarCuposEstandarAdmin() {
     fetch('/api/admin/guardar-cupos', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-            "7:00": parseInt(cupos7_00) || 10,
-            "8:15": parseInt(cupos8_15) || 10,
-            "9:30": parseInt(cupos9_30) || 10,
-            "11:00": parseInt(cupos11_00) || 10,
-            "14:30": parseInt(cupos14_30) || 10
+            "7:00": parseInt(document.getElementById("input-cupos-7_00").value) || 10,
+            "8:15": parseInt(document.getElementById("input-cupos-8_15").value) || 10,
+            "9:30": parseInt(document.getElementById("input-cupos-9_30").value) || 10,
+            "11:00": parseInt(document.getElementById("input-cupos-11_00").value) || 10,
+            "14:30": parseInt(document.getElementById("input-cupos-14_30").value) || 10
         })
     })
     .then(response => response.json())
@@ -426,27 +337,35 @@ function guardarCuposEstandarAdmin() {
             alert(data.message);
             cargarDatosDelServidor();
         }
-    })
-    .catch(error => alert("Error al guardar la configuración."));
+    });
 }
 
 function actualizarInputsCuposAdmin() {
     if (!datosGlobales || !datosGlobales.cuposBase) return;
     const base = datosGlobales.cuposBase;
-    if (document.getElementById("input-cupos-7_00")) document.getElementById("input-cupos-7_00").value = base["7:00"] || 10;
-    if (document.getElementById("input-cupos-8_15")) document.getElementById("input-cupos-8_15").value = base["8:15"] || 10;
-    if (document.getElementById("input-cupos-9_30")) document.getElementById("input-cupos-9_30").value = base["9:30"] || 10;
-    if (document.getElementById("input-cupos-11_00")) document.getElementById("input-cupos-11_00").value = base["11:00"] || 10;
-    if (document.getElementById("input-cupos-14_30")) document.getElementById("input-cupos-14_30").value = base["14:30"] || 10;
+    ["7:00", "8:15", "9:30", "11:00", "14:30"].forEach(h => {
+        const id = "input-cupos-" + h.replace(":", "_");
+        if (document.getElementById(id)) document.getElementById(id).value = base[h] || 10;
+    });
 }
 
-// RADAR DE ALUMNOS
+// --- RADAR ---
 function buscarReservasRadar() {
     const rutBuscado = document.getElementById("input-radar-rut").value.trim();
     if (!rutBuscado) return;
 
     const listaDom = document.getElementById("lista-radar-resultados");
-    listaDom.innerHTML = `<li style="text-align: center; color: #7c7c8a; font-size: 13px;">Buscando en la base de datos...</li>`;
+    const nombreResultado = document.getElementById("radar-nombre-resultado");
+    listaDom.innerHTML = `<li style="text-align: center; color: #7c7c8a; font-size: 13px;">Buscando...</li>`;
+    nombreResultado.style.display = "none";
+
+    if (datosGlobales && datosGlobales.listaRuts) {
+        const alumnoInfo = datosGlobales.listaRuts.find(a => a.rut === rutBuscado);
+        if (alumnoInfo && alumnoInfo.nombre) {
+            nombreResultado.innerText = `👤 ${alumnoInfo.nombre}`;
+            nombreResultado.style.display = "block";
+        }
+    }
 
     fetch('/api/admin/radar', {
         method: 'POST',
@@ -457,10 +376,9 @@ function buscarReservasRadar() {
     .then(data => {
         listaDom.innerHTML = "";
         if (!data.success || data.reservas.length === 0) {
-            listaDom.innerHTML = `<li style="text-align: center; color: #ef4444; font-size: 13px; padding: 10px;">No se encontraron reservas para este RUT.</li>`;
+            listaDom.innerHTML = `<li style="text-align: center; color: #ef4444; font-size: 13px; padding: 10px;">No se encontraron reservas futuras.</li>`;
             return;
         }
-
         data.reservas.forEach(res => {
             const li = document.createElement("li");
             li.style.borderBottom = "1px solid #29292e";
@@ -469,8 +387,5 @@ function buscarReservasRadar() {
             li.innerHTML = `<strong style="color: #22c55e;">${res.fecha}</strong> a las <strong>${res.hora}</strong>`;
             listaDom.appendChild(li);
         });
-    })
-    .catch(error => {
-        listaDom.innerHTML = `<li style="text-align: center; color: #ef4444; font-size: 13px;">Error de búsqueda.</li>`;
     });
 }
