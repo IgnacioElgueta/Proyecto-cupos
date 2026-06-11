@@ -14,6 +14,7 @@
     </header>
 
     <main class="contenedor-horarios" style="max-width: 100%; width: 100%;">
+        
         <section id="seccion-login-admin" class="tarjeta-registro" style="max-width: 400px; margin: 40px auto;">
             <h2>Ingreso Seguro</h2>
             <form id="form-login-admin" onsubmit="autenticarAdmin(event)">
@@ -37,32 +38,42 @@
             
             <div class="admin-grid">
                 
-                <div class="subpanel">
-                    <h3>Capacidad de Clases</h3>
-                    <p style="font-size: 13px; color: #7c7c8a; margin-bottom: 15px;">Establece los cupos iniciales estándar.</p>
-                    <div class="control-cupos">
-                        <div class="input-grupo">
-                            <label>07:00 AM:</label>
-                            <input type="number" id="input-cupos-7_00" value="10" min="0">
+                <div style="display: flex; flex-direction: column; gap: 20px;">
+                    <div class="subpanel">
+                        <h3>Capacidad de Clases</h3>
+                        <p style="font-size: 13px; color: #7c7c8a; margin-bottom: 15px;">Establece los cupos iniciales estándar.</p>
+                        <div class="control-cupos">
+                            <div class="input-grupo">
+                                <label>07:00 AM:</label>
+                                <input type="number" id="input-cupos-7_00" value="10" min="0">
+                            </div>
+                            <div class="input-grupo">
+                                <label>08:15 AM:</label>
+                                <input type="number" id="input-cupos-8_15" value="10" min="0">
+                            </div>
+                            <div class="input-grupo">
+                                <label>09:30 AM:</label>
+                                <input type="number" id="input-cupos-9_30" value="10" min="0">
+                            </div>
+                            <div class="input-grupo">
+                                <label>11:00 AM (Mayor):</label>
+                                <input type="number" id="input-cupos-11_00" value="10" min="0">
+                            </div>
+                            <div class="input-grupo">
+                                <label>14:30 PM:</label>
+                                <input type="number" id="input-cupos-14_30" value="10" min="0">
+                            </div>
+                            <button onclick="guardarCuposEstandarAdmin()" class="btn btn-guardar" style="width: 100%; font-size: 13px;">💾 Guardar Cupos</button>
+                            <button onclick="aplicarCuposBaseRangoAdmin()" class="btn btn-cancelar" style="width: 100%; font-size: 13px; margin-top: 5px; color: #ffbc0d; border-color: #ffbc0d; background: rgba(255,188,13,0.05);">🔄 Maestro: Forzar Base en Rango</button>
                         </div>
-                        <div class="input-grupo">
-                            <label>08:15 AM:</label>
-                            <input type="number" id="input-cupos-8_15" value="10" min="0">
-                        </div>
-                        <div class="input-grupo">
-                            <label>09:30 AM:</label>
-                            <input type="number" id="input-cupos-9_30" value="10" min="0">
-                        </div>
-                        <div class="input-grupo">
-                            <label>11:00 AM (Mayor):</label>
-                            <input type="number" id="input-cupos-11_00" value="10" min="0">
-                        </div>
-                        <div class="input-grupo">
-                            <label>14:30 PM:</label>
-                            <input type="number" id="input-cupos-14_30" value="10" min="0">
-                        </div>
-                        <button onclick="guardarCuposEstandarAdmin()" class="btn btn-guardar" style="width: 100%; font-size: 13px;">💾 Guardar Cupos</button>
-                        <button onclick="aplicarCuposBaseRangoAdmin()" class="btn btn-cancelar" style="width: 100%; font-size: 13px; margin-top: 5px; color: #ffbc0d; border-color: #ffbc0d; background: rgba(255,188,13,0.05);">🔄 Maestro: Forzar Base en Rango</button>
+                    </div>
+
+                    <div class="subpanel">
+                        <h3>Días con Reservas</h3>
+                        <p style="font-size: 13px; color: #7c7c8a; margin-bottom: 15px;">Fechas que tienen alumnos anotados.</p>
+                        <ul id="lista-dias-activos" style="list-style: none; max-height: 180px; overflow-y: auto; background: #121214; padding: 10px; border-radius: 4px; border: 1px solid #29292e;">
+                            <li style="text-align: center; color: #7c7c8a; font-size: 13px;">Buscando fechas activas...</li>
+                        </ul>
                     </div>
                 </div>
 
@@ -117,6 +128,32 @@
                         <ul id="lista-radar-resultados" style="list-style: none; max-height: 220px; overflow-y: auto; background: #121214; padding: 10px; border-radius: 4px; border: 1px solid #29292e;">
                             <li style="text-align: center; color: #7c7c8a; font-size: 13px;">Ingresa un RUT para escanear</li>
                         </ul>
+                    </div>
+                </div>
+
+                <div class="subpanel" style="grid-column: 1 / -1; display: flex; flex-direction: column; gap: 15px; margin-top: 10px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #3a3a3c; padding-bottom: 15px;">
+                        <div>
+                            <h3>Control de Asistencia General</h3>
+                            <p style="font-size: 13px; color: #7c7c8a; margin-top: 5px;">Registra si el alumno asistió a su reserva. El resumen se calcula en tiempo real.</p>
+                        </div>
+                        <button onclick="cargarAsistenciasAdmin()" class="btn btn-cancelar" style="padding: 8px 15px; font-size: 13px; width: auto;">🔄 Refrescar Listas</button>
+                    </div>
+                    
+                    <div style="display: flex; gap: 25px; flex-wrap: wrap;">
+                        <div style="flex: 2; min-width: 300px;">
+                            <h4 style="color: #e1e1e6; margin-bottom: 10px; font-size: 14px;">📝 Historial de Reservas</h4>
+                            <ul id="lista-asistencia-marcar" style="list-style: none; max-height: 350px; overflow-y: auto; background: #121214; padding: 10px; border-radius: 4px; border: 1px solid #29292e;">
+                                <li style="text-align: center; color: #7c7c8a; font-size: 13px;">Cargando historial...</li>
+                            </ul>
+                        </div>
+                        
+                        <div style="flex: 1.5; min-width: 250px;">
+                            <h4 style="color: #e1e1e6; margin-bottom: 10px; font-size: 14px;">📊 Resumen por Alumno</h4>
+                            <ul id="lista-asistencia-resumen" style="list-style: none; max-height: 350px; overflow-y: auto; background: #121214; padding: 10px; border-radius: 4px; border: 1px solid #29292e;">
+                                <li style="text-align: center; color: #7c7c8a; font-size: 13px;">Calculando estadísticas...</li>
+                            </ul>
+                        </div>
                     </div>
                 </div>
 

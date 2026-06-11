@@ -37,11 +37,10 @@ DATOS_INICIALES = {
     }          
 }
 
-# --- NUEVO: FUNCIÓN PARA FORMATEAR RUT CHILENO (XX.XXX.XXX-X) ---
+# --- FUNCIÓN PARA FORMATEAR RUT CHILENO (XX.XXX.XXX-X) ---
 def formatear_rut(rut_raw):
     if not rut_raw:
         return ""
-    # Quitar puntos, guiones y espacios, y pasar a mayúsculas (por si es K)
     rut_limpio = "".join(c for c in str(rut_raw) if c.isalnum()).upper()
     
     if len(rut_limpio) < 2:
@@ -51,18 +50,15 @@ def formatear_rut(rut_raw):
     dv = rut_limpio[-1]
     
     try:
-        # Formatear el cuerpo con puntos de miles
         cuerpo_int = int(cuerpo)
         cuerpo_formateado = f"{cuerpo_int:,}".replace(",", ".")
         return f"{cuerpo_formateado}-{dv}"
     except ValueError:
-        # Si tiene un formato extraño que no se puede procesar, lo devuelve limpio
         return rut_limpio
 
 def cargar_datos():
     datos = coleccion.find_one({"_id": "configuracion_box"})
     
-    # 1. Si no hay nada, creamos todo desde cero
     if not datos:
         hoy = datetime.now()
         fechas = []
@@ -89,23 +85,20 @@ def cargar_datos():
         coleccion.insert_one(datos_nuevos)
         return datos_nuevos
     
-    # --- ACTUALIZACIÓN DINÁMICA Y REPARADOR DE RUTS ---
     hubo_cambios = False
     
     if "listaRuts" in datos:
         lista_reparada = []
         for r in datos["listaRuts"]:
-            # Si era texto simple antiguo
             if isinstance(r, str):
                 rut_formateado = formatear_rut(r)
                 lista_reparada.append({"rut": rut_formateado, "nombre": "Alumno Antiguo", "email": "Sin correo"})
                 hubo_cambios = True
-            # Si ya es diccionario, limpiamos undefined y formateamos
             elif isinstance(r, dict):
                 rut_actual = str(r.get("rut", "")).strip()
                 if "undefined" in rut_actual.lower() or rut_actual == "":
                     hubo_cambios = True
-                    continue # Lo eliminamos de la base de datos
+                    continue 
                 
                 rut_formateado = formatear_rut(rut_actual)
                 if rut_actual != rut_formateado:
@@ -165,7 +158,6 @@ def enviar_correo_confirmacion(email_destino, nombre, fecha, hora):
     except Exception as e:
         print(f"Error al conectar con la API de Brevo: {e}")
 
-
 # --- RUTAS DE NAVEGACIÓN ---
 @app.route('/')
 def home():
@@ -174,7 +166,6 @@ def home():
 @app.route('/admin-box')
 def admin_page():
     return render_template('admin.html')
-
 
 # --- ENDPOINTS DE LA API ---
 @app.route('/api/datos', methods=['GET'])
@@ -235,7 +226,8 @@ def reservar():
             "hora": hora,
             "nombre": nombre,
             "email": email,
-            "rut": rut_ingresado 
+            "rut": rut_ingresado,
+            "estado": None # Se guarda como nulo inicialmente para el sistema de asistencia
         })
         
         guardar_datos(datos)
@@ -351,26 +343,35 @@ def admin_configurar_calendario():
     guardar_datos(datos)
     return jsonify({"success": True, "message": f"Calendario modificado ({accion}r)."})
 
-@app.route('/api/admin/eliminar-usuario', methods=['POST'])
-def admin_eliminar_usuario():
+@app.route('/api/admin/aplicar-cupos-rango', methods=['POST'])
+def admin_aplicar_cupos_rango():
     data = request.json
-    fecha = str(data.get('fecha'))
-    rut_a_eliminar = formatear_rut(data.get('rut'))
-    hora_persona = data.get('hora')
+    f_inicio = data.get('fechaInicio')
+    f_fin = data.get('fechaFin')
     
-    hora_clave = hora_persona.replace(" AM", "").replace(" PM", "").strip()
-    
+    if not f_inicio or not f_fin:
+        return jsonify({"success": False, "message": "Faltan fechas."}), 400
+        
     datos = cargar_datos()
-    if fecha in datos["agendaDias"]:
-        dia_actual = datos["agendaDias"][fecha]
-        for i, persona in enumerate(dia_actual.get("personas", [])):
-            if formatear_rut(persona.get("rut", "")) == rut_a_eliminar and persona["hora"] == hora_persona:
-                dia_actual["personas"].pop(i)
-                if hora_clave in dia_actual:
-                    dia_actual[hora_clave]["disponibles"] += 1
-                guardar_datos(datos)
-                return jsonify({"success": True, "message": "Reserva eliminada con éxito."})
-    return jsonify({"success": False, "message": "Reserva no encontrada."}), 404
+    cupos_base = datos.get("cuposBase", DATOS_INICIALES["cuposBase"])
+    
+    inicio = datetime.strptime(f_inicio, "%Y-%m-%d")
+    fin = datetime.strptime(f_fin, "%Y-%m-%d")
+    
+    curr = inicio
+    while curr <= fin:
+        dia_str = curr.strftime("%Y-%m-%d")
+        if dia_str in datos.get("agendaDias", {}):
+            dia_data = datos["agendaDias"][dia_str]
+            for clave_hora, capacidad in cupos_base.items():
+                if clave_hora in dia_data:
+                    ocupados = sum(1 for p in dia_data.get("personas", []) if p["hora"].replace(" AM", "").replace(" PM", "").strip() == clave_hora)
+                    dia_data[clave_hora]["totales"] = capacidad
+                    dia_data[clave_hora]["disponibles"] = max(0, capacidad - ocupados)
+        curr += timedelta(days=1)
+        
+    guardar_datos(datos)
+    return jsonify({"success": True, "message": "Cupos propagados correctamente en el rango seleccionado."})
 
 @app.route('/api/admin/agregar-rut', methods=['POST'])
 def admin_agregar_rut():
@@ -393,7 +394,6 @@ def admin_agregar_rut():
     guardar_datos(datos)
     return jsonify({"success": True, "message": f"Alumno {nuevo_rut} registrado con éxito."})
 
-# --- NUEVO ENDPOINT PARA EDITAR RUT EXISTENTE ---
 @app.route('/api/admin/editar-rut', methods=['POST'])
 def admin_editar_rut():
     data = request.json
@@ -411,7 +411,6 @@ def admin_editar_rut():
                 r["nombre"] = nuevo_nombre
                 r["email"] = nuevo_email
             else:
-                # Si por alguna razón sigue siendo un string, lo convertimos a dict
                 idx = datos["listaRuts"].index(r)
                 datos["listaRuts"][idx] = {"rut": rut_guardado, "nombre": nuevo_nombre, "email": nuevo_email}
             editado = True
@@ -438,7 +437,6 @@ def admin_eliminar_rut():
             
     return jsonify({"success": False, "message": "RUT no encontrado."}), 404
 
-# --- NUEVA FUNCIÓN: RADAR DE ALUMNOS (AHORA CON NOMBRE) ---
 @app.route('/api/admin/radar', methods=['POST'])
 def radar_alumno():
     data = request.json
@@ -448,14 +446,12 @@ def radar_alumno():
     reservas_encontradas = []
     nombre_alumno = "Alumno no encontrado"
     
-    # 1. Buscamos el nombre oficial del alumno en la lista de RUTs
     for r in datos.get("listaRuts", []):
         rut_guardado = formatear_rut(r.get("rut") if isinstance(r, dict) else r)
         if rut_guardado == rut_buscado:
             nombre_alumno = r.get("nombre", "Usuario Box") if isinstance(r, dict) else "Usuario Box"
             break
     
-    # 2. Recorremos todos los días de la agenda buscando a la persona
     for fecha, dia_data in datos.get("agendaDias", {}).items():
         if "personas" in dia_data:
             for persona in dia_data["personas"]:
@@ -465,7 +461,6 @@ def radar_alumno():
                         "hora": persona.get("hora")
                     })
                     
-    # Ordenamos por fecha para que sea más legible en el panel
     reservas_encontradas.sort(key=lambda x: x["fecha"])
     
     return jsonify({
@@ -474,6 +469,103 @@ def radar_alumno():
         "reservas": reservas_encontradas
     })
 
+# --- OPERACIONES DEL RADAR: CANCELACIONES ---
+
+@app.route('/api/admin/radar/cancelar-todas', methods=['POST'])
+def admin_radar_cancelar_todas():
+    data = request.json
+    rut_buscado = formatear_rut(data.get('rut'))
+    if not rut_buscado:
+        return jsonify({"success": False, "message": "RUT no proporcionado."}), 400
+        
+    datos = cargar_datos()
+    eliminadas = 0
+    
+    for fecha, dia_data in datos.get("agendaDias", {}).items():
+        personas_restantes = []
+        for p in dia_data.get("personas", []):
+            if formatear_rut(p.get("rut", "")) == rut_buscado:
+                hora_clave = p["hora"].replace(" AM", "").replace(" PM", "").strip()
+                if hora_clave in dia_data:
+                    if dia_data[hora_clave].get("disponibles", 0) < dia_data[hora_clave].get("totales", 0):
+                        dia_data[hora_clave]["disponibles"] += 1
+                eliminadas += 1
+            else:
+                personas_restantes.append(p)
+        dia_data["personas"] = personas_restantes
+        
+    if eliminadas > 0:
+        guardar_datos(datos)
+        return jsonify({"success": True, "message": f"Purga exitosa. Se liberaron {eliminadas} cupos de la agenda de este alumno."})
+    return jsonify({"success": False, "message": "No se encontraron reservas registradas para este RUT."})
+
+@app.route('/api/admin/radar/cancelar-unica', methods=['POST'])
+def admin_radar_cancelar_unica():
+    data = request.json
+    rut_a_eliminar = formatear_rut(data.get('rut'))
+    fecha = str(data.get('fecha'))
+    hora_persona = data.get('hora')
+    
+    hora_clave = hora_persona.replace(" AM", "").replace(" PM", "").strip()
+    
+    datos = cargar_datos()
+    if fecha in datos.get("agendaDias", {}):
+        dia_actual = datos["agendaDias"][fecha]
+        for i, persona in enumerate(dia_actual.get("personas", [])):
+            if formatear_rut(persona.get("rut", "")) == rut_a_eliminar and persona["hora"] == hora_persona:
+                dia_actual["personas"].pop(i)
+                if hora_clave in dia_actual and isinstance(dia_actual[hora_clave], dict):
+                    if dia_actual[hora_clave].get("disponibles", 0) < dia_actual[hora_clave].get("totales", 0):
+                        dia_actual[hora_clave]["disponibles"] += 1
+                guardar_datos(datos)
+                return jsonify({"success": True, "message": "Reserva quirúrgica eliminada con éxito."})
+    return jsonify({"success": False, "message": "Reserva no encontrada."}), 404
+
+# --- ENDPOINTS DE ASISTENCIA ---
+
+@app.route('/api/admin/asistencias', methods=['GET'])
+def admin_asistencias():
+    datos = cargar_datos()
+    reservas = []
+    
+    for fecha, dia_data in datos.get("agendaDias", {}).items():
+        for persona in dia_data.get("personas", []):
+            reservas.append({
+                "rut": formatear_rut(persona.get("rut", "")),
+                "nombre": persona.get("nombre", "Usuario Box"),
+                "fecha": fecha,
+                "hora": persona.get("hora"),
+                "estado": persona.get("estado") # presente, ausente o None
+            })
+            
+    # Ordenar por fecha descendente
+    reservas.sort(key=lambda x: x["fecha"], reverse=True)
+    
+    return jsonify({
+        "success": True,
+        "reservas": reservas
+    })
+
+@app.route('/api/admin/marcar-asistencia', methods=['POST'])
+def admin_marcar_asistencia():
+    data = request.json
+    fecha = str(data.get('fecha'))
+    rut_alumno = formatear_rut(data.get('rut'))
+    hora = data.get('hora')
+    estado = data.get('estado') # 'presente' o 'ausente' recibidos desde JS
+    
+    datos = cargar_datos()
+    if fecha in datos.get("agendaDias", {}):
+        for persona in datos["agendaDias"][fecha].get("personas", []):
+            if formatear_rut(persona.get("rut", "")) == rut_alumno and persona.get("hora") == hora:
+                persona["estado"] = estado
+                guardar_datos(datos)
+                return jsonify({"success": True, "message": "Asistencia actualizada correctamente."})
+                
+    return jsonify({"success": False, "message": "Reserva no encontrada."}), 404
+
 if __name__ == '__main__':
     puerto = int(os.environ.get("PORT", 5000))
     app.run(host='0.0.0.0', port=puerto, debug=False)
+
+    

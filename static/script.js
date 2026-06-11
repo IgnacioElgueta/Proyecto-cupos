@@ -48,6 +48,7 @@ function cargarDatosDelServidor() {
             actualizarInterfazHorariosAlumno();
             actualizarListaRutsDom(data.listaRuts);
             actualizarInputsCuposAdmin();
+            actualizarDiasActivosDom(); // <--- NUEVO Lector de Días Activos
         })
         .catch(error => console.error("Error al conectar con Python:", error));
 }
@@ -188,6 +189,7 @@ function autenticarAdmin(event) {
             document.getElementById("seccion-login-admin").style.display = "none";
             document.getElementById("panel-admin-box").style.display = "block";
             cargarDatosDelServidor();
+            cargarAsistenciasAdmin(); // <--- Cargar asistencias al abrir panel
         } else {
             alert(data.message);
         }
@@ -349,9 +351,49 @@ function actualizarInputsCuposAdmin() {
     });
 }
 
-// --- NUEVA LÓGICA INTEGRADORA DE LOS 3 BOTONES ---
+// --- ESCÁNER DE DÍAS ACTIVOS (NUEVO) ---
+function actualizarDiasActivosDom() {
+    const lista = document.getElementById("lista-dias-activos");
+    if (!lista) return;
 
-// IMPLEMENTACIÓN 1: Acción Asíncrona del Botón Maestro de Cupos
+    if (!datosGlobales || !datosGlobales.agendaDias) {
+        lista.innerHTML = `<li style="text-align: center; color: #7c7c8a; font-size: 13px;">Sin datos activos</li>`;
+        return;
+    }
+
+    let diasConMovimiento = [];
+
+    // Revisar qué días tienen menos cupos disponibles que los totales (indica que hay reservas)
+    for (const [fecha, horas] of Object.entries(datosGlobales.agendaDias)) {
+        let reservado = false;
+        for (const [hora, info] of Object.entries(horas)) {
+            if (info.disponibles < info.totales) {
+                reservado = true;
+                break;
+            }
+        }
+        if (reservado) diasConMovimiento.push(fecha);
+    }
+
+    lista.innerHTML = "";
+    if (diasConMovimiento.length === 0) {
+        lista.innerHTML = `<li style="text-align: center; color: #7c7c8a; font-size: 13px;">No hay días con reservas anotadas.</li>`;
+        return;
+    }
+
+    diasConMovimiento.sort(); // Ordenar fechas
+    diasConMovimiento.forEach(fecha => {
+        const li = document.createElement("li");
+        li.style.borderBottom = "1px solid #29292e";
+        li.style.padding = "8px 4px";
+        li.style.fontSize = "13px";
+        li.style.color = "#e1e1e6";
+        li.innerHTML = `📅 <strong>${fecha}</strong> <span style="float: right; color: #4ade80;">Con actividad</span>`;
+        lista.appendChild(li);
+    });
+}
+
+// --- ACCIONES MAESTRAS Y RADAR ---
 function aplicarCuposBaseRangoAdmin() {
     const fInicio = document.getElementById("admin-fecha-inicio").value;
     const fFin = document.getElementById("admin-fecha-fin").value;
@@ -376,7 +418,6 @@ function aplicarCuposBaseRangoAdmin() {
     .catch(error => alert("Error al propagar la operación maestra."));
 }
 
-// Radar Base
 function buscarReservasRadar() {
     const rutBuscado = document.getElementById("input-radar-rut").value.trim();
     if (!rutBuscado) return;
@@ -418,7 +459,6 @@ function buscarReservasRadar() {
             li.style.justifyContent = "space-between";
             li.style.alignItems = "center";
             
-            // IMPLEMENTACIÓN 3: Botón Quirúrgico en línea para cada fila
             li.innerHTML = `
                 <div><strong style="color: #22c55e;">${res.fecha}</strong> a las <strong>${res.hora}</strong></div>
                 <button onclick="eliminarReservaQuirurgica('${rutBuscado}', '${res.fecha}', '${res.hora}')" 
@@ -430,7 +470,6 @@ function buscarReservasRadar() {
     });
 }
 
-// IMPLEMENTACIÓN 2: Acción del Botón Nuclear del Radar
 function eliminarTodasReservasRadar() {
     const rutBuscado = document.getElementById("input-radar-rut").value.trim();
     if (!rutBuscado) return;
@@ -449,11 +488,11 @@ function eliminarTodasReservasRadar() {
         alert(data.message);
         buscarReservasRadar();
         cargarDatosDelServidor();
+        cargarAsistenciasAdmin();
     })
     .catch(error => alert("Error en la purga nuclear."));
 }
 
-// IMPLEMENTACIÓN 3 (Función): Ejecución del botón Quirúrgico
 function eliminarReservaQuirurgica(rut, fecha, hora) {
     if (!confirm(`¿Eliminar quirúrgicamente la reserva del día ${fecha} a las ${hora}?`)) return;
 
@@ -467,6 +506,154 @@ function eliminarReservaQuirurgica(rut, fecha, hora) {
         alert(data.message);
         buscarReservasRadar();
         cargarDatosDelServidor();
+        cargarAsistenciasAdmin();
     })
     .catch(error => alert("Error al procesar remoción quirúrgica."));
+}
+
+// --- SISTEMA DE ASISTENCIA (NUEVO) ---
+function cargarAsistenciasAdmin() {
+    const listaMarcar = document.getElementById("lista-asistencia-marcar");
+    const listaResumen = document.getElementById("lista-asistencia-resumen");
+    
+    if(!listaMarcar || !listaResumen) return;
+
+    listaMarcar.innerHTML = `<li style="text-align: center; color: #7c7c8a; font-size: 13px;">Cargando registros...</li>`;
+    listaResumen.innerHTML = `<li style="text-align: center; color: #7c7c8a; font-size: 13px;">Procesando analíticas...</li>`;
+
+    // Se asume que Python enviará un JSON con { success: true, reservas: [{fecha, hora, rut, nombre, estado}] }
+    // donde 'estado' puede ser: 'presente', 'ausente', o nulo/vacío si aún no se marca
+    fetch('/api/admin/asistencias?t=' + new Date().getTime())
+        .then(response => response.json())
+        .then(data => {
+            if (!data.success) {
+                listaMarcar.innerHTML = `<li style="text-align: center; color: #ef4444; font-size: 13px;">Error al cargar asistencias</li>`;
+                listaResumen.innerHTML = "";
+                return;
+            }
+            renderizarHistorialParaMarcar(data.reservas);
+            generarResumenAsistenciaJS(data.reservas);
+        })
+        .catch(error => {
+            console.error("No se pudo cargar la asistencia:", error);
+            listaMarcar.innerHTML = `<li style="text-align: center; color: #ef4444; font-size: 13px;">Requiere implementación Backend</li>`;
+            listaResumen.innerHTML = `<li style="text-align: center; color: #ef4444; font-size: 13px;">Requiere implementación Backend</li>`;
+        });
+}
+
+function renderizarHistorialParaMarcar(reservasCompletas) {
+    const lista = document.getElementById("lista-asistencia-marcar");
+    lista.innerHTML = "";
+
+    if (!reservasCompletas || reservasCompletas.length === 0) {
+        lista.innerHTML = `<li style="text-align: center; color: #7c7c8a; font-size: 13px;">No hay historial de reservas registradas.</li>`;
+        return;
+    }
+
+    reservasCompletas.forEach(res => {
+        const li = document.createElement("li");
+        li.style.borderBottom = "1px solid #29292e";
+        li.style.padding = "10px 5px";
+        li.style.fontSize = "13px";
+        li.style.display = "flex";
+        li.style.justifyContent = "space-between";
+        li.style.alignItems = "center";
+        
+        let opacidadPresente = res.estado === 'presente' ? '1' : '0.4';
+        let opacidadAusente = res.estado === 'ausente' ? '1' : '0.4';
+
+        li.innerHTML = `
+            <div style="flex: 1;">
+                <strong style="color: #e1e1e6;">${res.nombre || res.rut}</strong><br>
+                <small style="color: #7c7c8a;">📅 ${res.fecha} | ⏰ ${res.hora}</small>
+            </div>
+            <div style="display: flex; gap: 8px;">
+                <button onclick="registrarAsistencia('${res.rut}', '${res.fecha}', '${res.hora}', 'presente')" 
+                        style="background: #22c55e; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; opacity: ${opacidadPresente}; font-size: 12px; font-weight: bold;">
+                    ✔️ Vino
+                </button>
+                <button onclick="registrarAsistencia('${res.rut}', '${res.fecha}', '${res.hora}', 'ausente')" 
+                        style="background: #ef4444; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; opacity: ${opacidadAusente}; font-size: 12px; font-weight: bold;">
+                    ❌ Faltó
+                </button>
+            </div>
+        `;
+        lista.appendChild(li);
+    });
+}
+
+function registrarAsistencia(rut, fecha, hora, estado) {
+    fetch('/api/admin/marcar-asistencia', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ rut, fecha, hora, estado })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            cargarAsistenciasAdmin(); // Refrescar listas visuales silenciosamente
+        } else {
+            alert(data.message || "Error al registrar la asistencia.");
+        }
+    })
+    .catch(error => console.error("Error al marcar asistencia:", error));
+}
+
+// Calculadora del Resumen Analítico en tiempo real
+function generarResumenAsistenciaJS(reservas) {
+    const lista = document.getElementById("lista-asistencia-resumen");
+    lista.innerHTML = "";
+
+    let estadisticas = {};
+
+    // Agrupar los datos crudos
+    reservas.forEach(res => {
+        if (!estadisticas[res.rut]) {
+            estadisticas[res.rut] = {
+                nombre: res.nombre || res.rut,
+                total: 0,
+                vino: 0,
+                falto: 0
+            };
+        }
+        
+        estadisticas[res.rut].total++;
+        if (res.estado === 'presente') estadisticas[res.rut].vino++;
+        if (res.estado === 'ausente') estadisticas[res.rut].falto++;
+    });
+
+    const ruts = Object.keys(estadisticas);
+    if (ruts.length === 0) {
+        lista.innerHTML = `<li style="text-align: center; color: #7c7c8a; font-size: 13px;">No hay datos para analizar.</li>`;
+        return;
+    }
+
+    ruts.forEach(rut => {
+        const est = estadisticas[rut];
+        const resueltas = est.vino + est.falto;
+        
+        // El porcentaje de asistencia real se mide sobre las clases que ya pasaron (que ya están marcadas)
+        let porcentaje = resueltas > 0 ? Math.round((est.vino / resueltas) * 100) : 0;
+        let colorBarra = porcentaje >= 75 ? '#22c55e' : (porcentaje >= 50 ? '#ffbc0d' : '#ef4444');
+
+        const li = document.createElement("li");
+        li.style.borderBottom = "1px solid #29292e";
+        li.style.padding = "12px 5px";
+        li.style.fontSize = "13px";
+        
+        li.innerHTML = `
+            <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                <strong style="color: #e1e1e6;">${est.nombre}</strong>
+                <strong style="color: ${colorBarra};">${porcentaje}% Asist.</strong>
+            </div>
+            <div style="display: flex; justify-content: space-between; font-size: 11px; color: #7c7c8a; margin-bottom: 8px;">
+                <span>Total Reservas: ${est.total}</span>
+                <span>✔️ ${est.vino} | ❌ ${est.falto}</span>
+            </div>
+            <div style="width: 100%; background: #2c2c2e; border-radius: 4px; height: 6px; overflow: hidden;">
+                <div style="width: ${porcentaje}%; background: ${colorBarra}; height: 100%;"></div>
+            </div>
+        `;
+        lista.appendChild(li);
+    });
 }
